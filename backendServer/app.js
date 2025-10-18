@@ -83,7 +83,8 @@ app.post('/login', (req, res) => {
   res.status(200).send({data:{success: true, message: "Logged In.", jwt: token}});
 });
 
-app.get('/create-account', (req, res) => {
+// create an account, adds data to db and generates userID and jwt token if successful
+app.get('/createAccount', (req, res) => {
   // req = {
   //         data: {
   //           name: String,
@@ -125,8 +126,33 @@ app.get('/create-account', (req, res) => {
     );
 });
 
-// Frontend requests map data
-app.get('/getMap', (req, res) => {
+// Frontend requests data for a single event
+app.get('/getEventData', (req, res) => {
+  res.send("UMapper Web API.");
+});
+
+// Frontend requests data for many events cooresponding to certain filters
+app.get('/getEventList', (req, res) => {
+  res.send("UMapper Web API.");
+});
+
+// User creates event
+app.get('/createEvent', (req, res) => {
+  res.send("UMapper Web API.");
+});
+
+// User edits or deletes event
+app.get('/changeEvent', (req, res) => {
+  res.send("UMapper Web API.");
+});
+
+// User RSVPs/changes RSVP to event
+app.get('/userRSVP', (req, res) => {
+  res.send("UMapper Web API.");
+});
+
+// Gets all events a user has saved/RSVPd to
+app.get('/userEvents', (req, res) => {
   res.send("UMapper Web API.");
 });
 
