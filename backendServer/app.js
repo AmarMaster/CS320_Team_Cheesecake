@@ -4,10 +4,6 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-// uuid userId
-import {v4 as uuid} from 'uuid';
-
-
 // jwt authentication
 const jwt = require("jsonwebtoken");
 
@@ -84,7 +80,7 @@ app.post('/login', (req, res) => {
 });
 
 // create an account, adds data to db and generates userID and jwt token if successful
-app.get('/createAccount', (req, res) => {
+app.post('/createAccount', (req, res) => {
   // req = {
   //         data: {
   //           name: String,
@@ -97,7 +93,6 @@ app.get('/createAccount', (req, res) => {
   //   data: {
   //     success: Boolean,
   //     message: String,
-  //     userID: String
   //     jwt: String,
   //   }
   // }
@@ -106,28 +101,32 @@ app.get('/createAccount', (req, res) => {
   userPass = req['data']['password'];
   userEmail = req['data']['email'];
   db.many( // make sure no account already exists with that email
-      'SELECT * FROM users WHERE email = {email}', {email: userEmail}
+      'SELECT * FROM users WHERE username = {name}', {name: userName}
     )
     .then(
       pass => { // user is found (bad)
-        res.locals.message = `Account already found for this email.`;
-        res.status(403).send({data:{success: false, message: "Account already found for this email.", userID: '', jwt: ''}});
+        res.locals.message = `Username already taken.`;
+        res.status(403).send({data:{success: false, message: "Username already taken.", userID: '', jwt: ''}});
         return;
-      }, 
+      },
       _ => { // no user is found (good)
         // generate new random id
-        userUUID = uuid()
         // add user to db
-        db.none('INSERT INTO Users (id, name, password, email) VALUES ({id}, {name}, {pass}, {email}); ', {id: userUUID, name: userName, pass: userPass, email: userEmail})
+        db.none('INSERT INTO Users (name, password, email) VALUES ({name}, {pass}, {email}); ', {name: userName, pass: userPass, email: userEmail})
         // Generate jwt auth token
         const token = jwt.sign({ userId: req['data']['userID'] }, "secretKey", { expiresIn: "2h" });
-        res.status(200).send({data:{success: true, message: "Account Created.", userID: userUUID, jwt: token}});
+        res.status(200).send({data:{success: true, message: "Account Created.", jwt: token}});
       }
     );
 });
 
 // Frontend requests data for a single event
 app.get('/getEventData', (req, res) => {
+  res.send("UMapper Web API.");
+});
+
+// Frontend requests data for a single event
+app.get('/getUserData', (req, res) => {
   res.send("UMapper Web API.");
 });
 
@@ -141,7 +140,7 @@ app.get('/createEvent', (req, res) => {
   res.send("UMapper Web API.");
 });
 
-// User edits or deletes event
+// User edits or delete event
 app.get('/changeEvent', (req, res) => {
   res.send("UMapper Web API.");
 });
@@ -152,7 +151,7 @@ app.get('/userRSVP', (req, res) => {
 });
 
 // Gets all events a user has saved/RSVPd to
-app.get('/userEvents', (req, res) => {
+app.get('/getUserEvents', (req, res) => {
   res.send("UMapper Web API.");
 });
 
