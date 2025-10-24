@@ -2,8 +2,6 @@
 //  EventTrackerUITests.swift
 //  EventTrackerUITests
 //
-//  Created by Nguyen Nhat Hong Anh on 10/24/25.
-//
 
 import XCTest
 

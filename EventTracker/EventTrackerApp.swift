@@ -2,8 +2,6 @@
 //  EventTrackerApp.swift
 //  EventTracker
 //
-//  Created by Nguyen Nhat Hong Anh on 10/24/25.
-//
 
 import SwiftUI
 import SwiftData
@@ -25,7 +23,7 @@ struct EventTrackerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            CreateAccountView()
         }
         .modelContainer(sharedModelContainer)
     }

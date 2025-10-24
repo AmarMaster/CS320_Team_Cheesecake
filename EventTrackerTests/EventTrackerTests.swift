@@ -2,8 +2,6 @@
 //  EventTrackerTests.swift
 //  EventTrackerTests
 //
-//  Created by Nguyen Nhat Hong Anh on 10/24/25.
-//
 
 import Testing
 @testable import EventTracker
