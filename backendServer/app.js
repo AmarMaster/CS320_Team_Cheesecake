@@ -121,37 +121,152 @@ app.post('/createAccount', (req, res) => {
 });
 
 // Frontend requests data for a single event
+// /getEventData?eventId={String}
 app.get('/getEventData', (req, res) => {
-  res.send("UMapper Web API.");
-});
+  /*
+  headers = {
+    auth: String
+  }
 
-// Frontend requests data for a single event
-app.get('/getUserData', (req, res) => {
+  res = {
+    data: {
+      success: Boolean,
+      event: Event,
+    }
+  }
+
+  Event = {
+        name: String,
+        location: ???,
+        time: ???,
+        duration: ???,
+        details: String,
+        description: String
+      }
+  */
   res.send("UMapper Web API.");
 });
 
 // Frontend requests data for many events cooresponding to certain filters
+// filters: userID (for account page events that user has RSVP'd to), location, date, time
+// /getEventList?filters[userID]=userID&filters[location]=location&filters[date]=date&filters[time]=time
 app.get('/getEventList', (req, res) => {
+  /*
+  headers = {
+    auth: String
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      events: [Event]
+    }
+  }
+  
+  Event = {
+        name: String,
+        location: ???,
+        time: ???,
+        duration: ???,
+        details: String,
+        description: String
+      }
+  */
   res.send("UMapper Web API.");
 });
 
-// User creates event
-app.get('/createEvent', (req, res) => {
+// User creates event, returns the created event
+app.post('/createEvent', (req, res) => {
+  /*
+  req = {
+    data: {
+      userID = String
+      event = Event
+    }
+    auth: {
+      jwt: String
+    }
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      event: Event
+    }
+  }
+  
+  Event = {
+        name: String,
+        location: ???,
+        time: ???,
+        duration: ???,
+        details: String,
+        description: String
+      }
+  */
   res.send("UMapper Web API.");
 });
 
-// User edits or delete event
-app.get('/changeEvent', (req, res) => {
+// User edits or delete event, returns the updated event
+app.post('/changeEvent', (req, res) => {
+  /*
+  req = {
+    data: {
+      userID = String
+      eventID = String
+      event = Event
+    }
+    auth: {
+      jwt: String
+    }
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      event: Event
+    }
+  }
+  
+  Event = {
+        name: String,
+        location: ???,
+        time: ???,
+        duration: ???,
+        details: String,
+        description: String
+      }
+  */
   res.send("UMapper Web API.");
 });
 
 // User RSVPs/changes RSVP to event
-app.get('/userRSVP', (req, res) => {
-  res.send("UMapper Web API.");
-});
+app.post('/userRSVP', (req, res) => {
+  /*
+  req = {
+    data: {
+      userID = String
+      eventID = String
+      RSVPstatus = Int
+    }
+    auth: {
+      jwt: String
+    }
+  }
 
-// Gets all events a user has saved/RSVPd to
-app.get('/getUserEvents', (req, res) => {
+  res = {
+    data: {
+      success: Boolean,
+      RSVPstatus: Int
+    }
+  }
+  
+  RSVPstatus:
+    0 = no RSVP
+    1 = attending
+    2 = not attending
+    ...
+  */
   res.send("UMapper Web API.");
 });
 
