@@ -13,7 +13,7 @@ const jwt = require("jsonwebtoken");
 
 // PostgreSQL integration
 const pgp = require('pg-promise')(/* options */)
-const db = pgp('postgres://username:password@host:port/database')
+const db = require('../Database/db.js');
 
 var app = express();
 
