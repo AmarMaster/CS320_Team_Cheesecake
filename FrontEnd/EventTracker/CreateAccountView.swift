@@ -65,20 +65,22 @@ struct CreateAccountView: View {
                 HStack(spacing: 20) {
                     Button(action: {}) {
                         Image(systemName: "applelogo")
-                            .font(.system(size: 30))
+                            .resizable()
+                            .scaledToFit()
                         
                             .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
+                            .frame(width: 140, height: 30)
                             .padding()
                             .background(Color(UIColorFromRGB(0x312F2F)))
                             .cornerRadius(16)
                     }
                     
                     Button(action: {}) {
-                        Image(systemName: "camera")
-                            .font(.system(size: 30))
+                        Image("instagramLogo 1")
+                            .resizable()
+                            .scaledToFit()
                             .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
+                            .frame(width: 140, height: 30)
                             .padding()
                             .background(Color(UIColorFromRGB(0x312F2F)))
                             .cornerRadius(16)
