@@ -144,7 +144,34 @@ app.get('/getEventData', (req, res) => {
         description: String
       }
   */
-  res.send("UMapper Web API.");
+  eid = req.query.eventID
+  if (eid){
+    db.one( // get the event
+      'SELECT * FROM events WHERE id = {id}', {id: eid}
+    ).then( event => {
+        res.status(200).send(
+          {data:
+            {success: true, event: 
+              { 
+                'name': event.name, 
+                'location': event.location, 
+                'time': event.time, 
+                'duration': event.duration, 
+                'details': event.details, 
+                'description': event.description
+              }
+            }
+          }
+        );
+        return;
+      }
+    ).catch( _ => {
+        res.locals.message = `No event found with id: ${eid}.`;
+        res.status(403).send({data:{success: false, event: undefined}});
+        return;
+      }
+    )
+  }
 });
 
 // Frontend requests data for many events cooresponding to certain filters
@@ -172,7 +199,47 @@ app.get('/getEventList', (req, res) => {
         description: String
       }
   */
-  res.send("UMapper Web API.");
+  uid = req.query.userID;
+  location = req.query.location;
+  date = req.query.date;
+  time = req.query.time;
+  if(!uid && !location && !date && !time){
+    res.locals.message = `No valid filters provided.`;
+        res.status(400).send({data:{success: false, events: undefined}});
+        return;
+  } else if (uid){ // this is all the user's rsvp'd events, it's separate from the other filters (takes priority)
+    db.manyOrNone( // get the event
+      'SELECT * FROM rsvps WHERE user_id = {id}', {id: eid}, rsvp => rsvp.event_id
+    ).then( event_ids => {
+        db.many(`SELECT * FROM events WHERE id IN ({id_list})`, {id_list: event_ids.join(', ')}).then(
+          events => {
+            res_events = [];
+            events.forEach(event => res_events.push({ 
+                'name': event.name, 
+                'location': event.location, 
+                'time': event.time, 
+                'duration': event.duration, 
+                'details': event.details, 
+                'description': event.description
+              }));
+            res.status(200).send({data:{success: true, events: res_events}});
+            return;
+          }
+        )
+      }
+    ).catch( _ => {
+        res.locals.message = `Error getting all events with an rsvp from user_id: ${uid}.`;
+        res.status(403).send({data:{success: false, events: undefined}});
+        return;
+      }
+    )
+  } else {
+    /* TODO: need to figure out what valid filter values are.
+        eg. 1mile, 5miles, 10miles, ... for location.
+            Values for date and time that give the user good filtering options.
+        We should decide whether these should be continuous or discreet values.
+    */
+  }
 });
 
 // User creates event, returns the created event
