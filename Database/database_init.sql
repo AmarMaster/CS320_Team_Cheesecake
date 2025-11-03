@@ -14,6 +14,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL, -- Must be unique in js as well
     password VARCHAR(255) NOT NULL,
     role VARCHAR(255) NOT NULL, -- admin, user, host
 
@@ -36,7 +37,12 @@ CREATE TABLE IF NOT EXISTS events (
     time TIMESTAMP NOT NULL,
     duration INTERVAL NOT NULL,
     details VARCHAR(120) NOT NULL,
-    description TEXT NOT NULL,
+    description TEXT,
+    adult_only BOOLEAN default FALSE, -- True if 18+ event
+    isUMASS BOOLEAN default FALSE, -- True if event is run through UMass
+    cost DECIMAL(10, 2) DEFAULT 0.00,
+    outdoor BOOLEAN default FALSE,
+    category VARCHAR(100), -- professional, social, entertainment, educational, public service, other.
     owner_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
