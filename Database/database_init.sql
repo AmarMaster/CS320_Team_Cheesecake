@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS events (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    location VARCHAR(255) NOT NULL,
+    location GEOMETRY(POINT, 4326) NOT NULL, -- Using PostGIS to store latitude and longitude
     time TIMESTAMP NOT NULL,
     duration INTERVAL NOT NULL,
     details VARCHAR(120) NOT NULL,
@@ -47,6 +47,10 @@ CREATE TABLE IF NOT EXISTS events (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Createss a Spatial Index on the location column of the events table for faster geospatial queries
+CREATE INDEX IF NOT EXISTS events_location_gist ON events USING GIST(location);
+
 
 -- Creates the RSVP TABLE
 -- Links users to the events they are attending
