@@ -6,6 +6,8 @@
 -- If eventtracker-db does not exist download postgresql and log into psql and run:
 -- CREATEDB eventtracker-db;
 
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 -- Create the users table.
 -- The 'id' column uses the SERIAL type, which automatically creates a unique ID for new records
 -- The 'username' is set to be UNIQUE and NOT NULL to prevent duplicate usernames
