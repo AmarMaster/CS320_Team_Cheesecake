@@ -235,6 +235,11 @@ app.get('/getEventList', (req, res) => {
   } else {
     const twentyoneplus = null;
   }
+  if (req.query.cost){
+    const cost = parseFloat(req.query.cost);
+  } else {
+    const cost = null;
+  }
 
   if(!uid && !location && !datetime && !twentyoneplus){
     res.locals.message = `No valid filters provided.`;
@@ -283,6 +288,7 @@ app.get('/getEventList', (req, res) => {
       if (twentyoneplus) {query = query.concat("AND twentyoneplus = true");} // event is 21+
       else {query = query.concat("AND twentyoneplus = false");} // event is not 21+
     } 
+    if (cost !== null) {query = query.concat("AND cost <= $1", cost);} // event is under the cost
     db.manyOrNone( // get the event
       query
     ).then( events => {
