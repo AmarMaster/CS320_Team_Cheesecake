@@ -107,7 +107,7 @@ struct ProfileView: View {
                                         
                                         HStack {
                                             Image(systemName: "mappin.and.ellipse")
-                                            Text(event.location)
+                                            Text(event.address)
                                         }
                                         .foregroundColor(.white)
                                         .font(.subheadline)

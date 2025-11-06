@@ -25,12 +25,12 @@ struct LoginView: View {
                         .padding(.bottom, 50)
                     
                     VStack(spacing: 12) {
-                        TextField("Name or Email", text: $nameOrEmail)
+                        TextField("Name or Email", text: $nameOrEmail, prompt: Text("Name or Email").foregroundColor(.gray))
                             .padding()
                             .background(Color(UIColorFromRGB(0x312F2F)))
                             .foregroundColor(.white)
                             .cornerRadius(16)
-                        SecureField("Password", text: $password)
+                        SecureField("Password", text: $password, prompt: Text("Password").foregroundColor(.gray))
                             .padding()
                             .background(Color(UIColorFromRGB(0x312F2F)))
                             .foregroundColor(.white)
@@ -39,7 +39,7 @@ struct LoginView: View {
                     
                     // Continue button
                     NavigationLink(destination: ProfileView()) {
-                        Text("Continue")
+                        Text("Login")
                             .padding()
                             .frame(maxWidth: .infinity)
                             .background(Color(UIColorFromRGB(0xFF5934)))

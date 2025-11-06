@@ -25,26 +25,27 @@ struct CreateAccountView: View {
                         .padding(.bottom, 50)
                     
                     VStack(spacing: 12) {
-                        TextField("Name", text: $name)
+                        TextField("Name", text: $name, prompt: Text("Name").foregroundColor(.gray))
                             .padding()
                             .background(Color(UIColorFromRGB(0x312F2F)))
                             .foregroundColor(.white)
                             .cornerRadius(16)
-                        SecureField("Password", text: $password)
+                        TextField("Email", text: $email, prompt: Text("Email").foregroundColor(.gray))
                             .padding()
                             .background(Color(UIColorFromRGB(0x312F2F)))
                             .foregroundColor(.white)
                             .cornerRadius(16)
-                        TextField("Email", text: $email)
+                        SecureField("Password", text: $password, prompt: Text("Password").foregroundColor(.gray))
                             .padding()
                             .background(Color(UIColorFromRGB(0x312F2F)))
                             .foregroundColor(.white)
                             .cornerRadius(16)
+
                     }.padding(.horizontal, 20)
                     
                     // Continue button
                     NavigationLink(destination: LoginView()) {
-                        Text("Continue")
+                        Text("Create Account")
                             .padding()
                             .frame(maxWidth: .infinity)
                             .background(Color(UIColorFromRGB(0xFF5934)))
