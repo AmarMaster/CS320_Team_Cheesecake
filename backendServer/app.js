@@ -11,6 +11,11 @@ const jwt = require("jsonwebtoken");
 const pgp = require('pg-promise')(/* options */)
 const db = require('../Database/db.js');
 
+// Import routes
+var indexRouter = require('./routes/index');
+var usersRouter = require('./routes/users');
+var eventsRouter = require('./routes/events');
+
 var app = express();
 
 // view engine setup
@@ -416,6 +421,11 @@ app.post('/userRSVP', (req, res) => {
   */
   res.send("UMapper Web API.");
 });
+
+// API Routes
+app.use('/api/events', eventsRouter);
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
