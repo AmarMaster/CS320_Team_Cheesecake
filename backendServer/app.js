@@ -9,7 +9,7 @@ const jwt = require("jsonwebtoken");
 
 // PostgreSQL integration
 const pgp = require('pg-promise')(/* options */)
-const db = require('../Database/db.js');
+const db = require('./db.js');
 
 // Import routes
 var indexRouter = require('./routes/index');

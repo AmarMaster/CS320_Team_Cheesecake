@@ -1,12 +1,12 @@
 import { Pool } from 'pg';
 
 const db = new Pool({
-    user: archer,
+    user: 'archer',
     host: 'localhost',
     database: 'eventtracker-db',
     port: 5432,
 })
 
-module.exports = {
+export default {
     query: (text, params) => db.query(text, params),
 };
