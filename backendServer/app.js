@@ -16,6 +16,7 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var eventsRouter = require('./routes/events');
 
+const port = 3000;
 var app = express();
 
 // view engine setup
@@ -443,5 +444,8 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-module.exports = app;
+app.listen(port, () => {
+  console.log(`EventMapper backend listening on port ${port}`)
+})
 
+module.exports = app;
