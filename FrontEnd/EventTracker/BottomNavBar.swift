@@ -19,7 +19,8 @@ struct BottomNavBar: View {
 
             Spacer()
             
-            Button(action: {}) {
+            NavigationLink(destination: MapView(fixedName: fixedName, fixedEmail: fixedEmail)
+                .environmentObject(APIViewModel())) {
                 Image(systemName: "map")
                     .foregroundColor(.white)
                     .font(.system(size: 30))
