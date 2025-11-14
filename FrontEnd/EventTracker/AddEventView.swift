@@ -8,6 +8,12 @@ import PhotosUI
 import MapKit
 
 struct AddEventView: View {
+    var fixedName: String
+    var fixedEmail: String
+    
+    @State private var showError = false
+    @State private var canContinue = false
+    
     @State private var name = ""
     @State private var description = ""
     @State private var location = ""
@@ -170,10 +176,18 @@ struct AddEventView: View {
                             .padding(.bottom, 80)
                         }
                     }
-                    
+                    if showError {
+                        Text("All fields are required.")
+                            .foregroundColor(.red)
+                            .font(.body)
+                    }
                     VStack {
                         Button(action: {
-                            if let coord = pickedCoordinate {
+                            if (name.isEmpty || details.isEmpty || description.isEmpty || location.isEmpty || pickedCoordinate == nil) {
+                                showError = true
+                            }
+                            else if let coord = pickedCoordinate {
+                                showError = false
                                 let newEvent = EventData(
                                     name: name,
                                     description: description,
@@ -195,17 +209,24 @@ struct AddEventView: View {
                         }
                         .padding(.horizontal, 20)
                         .padding(.vertical, 29)
+                        
+                     
 
                         
-                        BottomNavBar()
+                        BottomNavBar(fixedName: fixedName, fixedEmail: fixedEmail)
                     }
                 }
                 .navigationBarHidden(true)
+                
             }
         }
     }
 }
 
 #Preview {
-    AddEventView(events: .constant([]))
+    AddEventView(
+        fixedName: "Placeholder",
+        fixedEmail: "placeholder@umass.edu",
+        events: .constant([])
+    )
 }
