@@ -6,9 +6,15 @@
 import SwiftUI
 
 struct LoginView: View {
+    let fixedName: String
+    let fixedEmail: String
+    
     @State private var nameOrEmail = ""
     @State private var password = ""
     @State private var email = ""
+    
+    @State private var showError = false
+    @State private var canContinue = false
     
     var body: some View {
         NavigationStack {
@@ -38,52 +44,41 @@ struct LoginView: View {
                     }.padding(.horizontal, 20)
                     
                     // Continue button
-                    NavigationLink(destination: ProfileView()) {
+//                    NavigationLink(destination: ProfileView()) {
+//                        Text("Login")
+//                            .padding()
+//                            .frame(maxWidth: .infinity)
+//                            .background(Color(UIColorFromRGB(0xFF5934)))
+//                            .foregroundColor(.white)
+//                            .cornerRadius(16)
+//                    }.padding(.horizontal, 20)
+//                        .padding(.vertical, 29)
+                    Button(action: {
+                        if (nameOrEmail.isEmpty || password.isEmpty) {
+                            showError = true
+                        } else {
+                            showError = false
+                            canContinue = true
+                        }
+                    }) {
                         Text("Login")
                             .padding()
                             .frame(maxWidth: .infinity)
                             .background(Color(UIColorFromRGB(0xFF5934)))
                             .foregroundColor(.white)
                             .cornerRadius(16)
+                        
                     }.padding(.horizontal, 20)
                         .padding(.vertical, 29)
                     
-                    Text("Or Continue With")
-                        .foregroundColor(.white)
-                        .font(.body)
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 20)
-                    
-                    // Social logins
-                    HStack(spacing: 20) {
-                        Button(action: {}) {
-                            Image(systemName: "applelogo")
-                                .resizable()
-                                .scaledToFit()
-                            
-                                .foregroundColor(.white)
-                                .frame(width: 140, height: 30)
-                                .padding()
-                                .background(Color(UIColorFromRGB(0x312F2F)))
-                                .cornerRadius(16)
-                        }
-                        
-                        Button(action: {}) {
-                            Image("instagramLogo 1")
-                                .resizable()
-                                .scaledToFit()
-                                .foregroundColor(.white)
-                                .frame(width: 140, height: 30)
-                                .padding()
-                                .background(Color(UIColorFromRGB(0x312F2F)))
-                                .cornerRadius(16)
-                        }
-                    }.padding(.horizontal, 20)
+
                     Spacer()
                     
                 }
                 .navigationBarHidden(true)
+            }
+            .navigationDestination(isPresented: $canContinue) {
+                ProfileView(fixedName: fixedName, fixedEmail: fixedEmail)
             }
         }
 
@@ -91,5 +86,5 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView()
+    LoginView(fixedName: "Your Name", fixedEmail: "email@umass.edu")
 }

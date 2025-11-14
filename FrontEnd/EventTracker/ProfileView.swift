@@ -7,8 +7,9 @@ import SwiftUI
 import PhotosUI
 
 struct ProfileView: View {
-    @State private var name = ""
-    @State private var email = ""
+    let fixedName: String
+    let fixedEmail: String
+    
     @State private var phoneNumber = ""
     
     @State private var selectedItem: PhotosPickerItem? = nil
@@ -63,14 +64,14 @@ struct ProfileView: View {
                         
                         // info
                         VStack {
-                            Text("Your Name")
+                            Text(fixedName)
                                 .font(.title)
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)
                             
                             HStack (spacing: 10){
                                 Image(systemName: "envelope")
-                                Text(verbatim: "email@umass.edu")
+                                Text(fixedEmail)
                             }
                             .foregroundColor(.white)
                             .font(.subheadline)
@@ -124,7 +125,11 @@ struct ProfileView: View {
                         Spacer()
                         // add event button
                         VStack {
-                            NavigationLink(destination: AddEventView(events: $events)) {
+                            NavigationLink(destination: AddEventView(
+                                fixedName: fixedName,
+                                fixedEmail: fixedEmail,
+                                events: $events
+                            )) {
                                 Text("+ Add an Event")
                                     .padding()
                                     .frame(maxWidth: .infinity)
@@ -137,7 +142,7 @@ struct ProfileView: View {
                     
                     }
                     Spacer()
-                    BottomNavBar()
+                    BottomNavBar(fixedName: fixedName, fixedEmail: fixedEmail)
 
                     }
                 .navigationBarHidden(true)
@@ -176,5 +181,5 @@ struct ProfileView: View {
 }
 
 #Preview {
-    ProfileView()
+    ProfileView(fixedName: "Your Name", fixedEmail: "email@umass.edu")
 }

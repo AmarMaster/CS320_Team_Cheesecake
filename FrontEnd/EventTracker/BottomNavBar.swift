@@ -6,6 +6,9 @@
 import SwiftUI
 
 struct BottomNavBar: View {
+    let fixedName: String
+    let fixedEmail: String
+    
     var body: some View {
         HStack {
             Button(action: {}) {
@@ -24,7 +27,7 @@ struct BottomNavBar: View {
             
             Spacer()
             
-            NavigationLink(destination: ProfileView()) {
+            NavigationLink(destination: ProfileView(fixedName: fixedName, fixedEmail: fixedEmail)) {
                 Image(systemName: "person")
                     .foregroundColor(.white)
                     .font(.system(size: 30))
@@ -39,7 +42,7 @@ struct BottomNavBar: View {
         Color.black.ignoresSafeArea()
         VStack {
             Spacer()
-            BottomNavBar()
+            BottomNavBar(fixedName: "Placeholder", fixedEmail: "placeholder@umass.edu")
         }
     }
 }
