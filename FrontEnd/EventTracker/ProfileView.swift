@@ -99,32 +99,14 @@ struct ProfileView: View {
                                     
                                     VStack(alignment: .leading, spacing: 10) {
                 
-                                       Text(event.title)
+                                       Text(event.name)
                                            .foregroundColor(.white)
                                            .bold()
                                            .font(.title3)
                                        
-                                        
-                                        HStack {
-                                            Image(systemName: "mappin.and.ellipse")
-                                            Text(event.address)
-                                        }
-                                        .foregroundColor(.white)
-                                        .font(.subheadline)
-                                       
-                                        HStack {
-                                            Image(systemName: "calendar")
-                                            Text("\(event.date.formatted(.dateTime.month().day().year()))")
-                                        }
-                                        .foregroundColor(.white)
-                                        .font(.subheadline)
-                                        
-                                        HStack {
-                                            Image(systemName: "clock")
-                                            Text("\(event.time.formatted(.dateTime.hour().minute()))")
-                                        }
-                                        .foregroundColor(.white)
-                                        .font(.subheadline)
+                                        eventLocationView(event.location)
+                                        eventDateView(event.time)
+                                        eventTimeView(event.time)
                                    }
                                    .padding()
                                    .frame(maxWidth: .infinity)
@@ -163,6 +145,33 @@ struct ProfileView: View {
             }
         }
 
+    }
+    
+    private func eventLocationView(_ location: EventLocation) -> some View {
+        HStack {
+            Image(systemName: "mappin.and.ellipse")
+            Text("\(location.latitude), \(location.longitude)")
+        }
+        .foregroundColor(.white)
+        .font(.subheadline)
+    }
+    
+    private func eventDateView(_ time: Date) -> some View {
+        HStack {
+            Image(systemName: "calendar")
+            Text(time.formatted(.dateTime.month().day().year()))
+        }
+        .foregroundColor(.white)
+        .font(.subheadline)
+    }
+    
+    private func eventTimeView(_ time: Date) -> some View {
+        HStack {
+            Image(systemName: "clock")
+            Text(time.formatted(.dateTime.hour().minute()))
+        }
+        .foregroundColor(.white)
+        .font(.subheadline)
     }
 }
 
