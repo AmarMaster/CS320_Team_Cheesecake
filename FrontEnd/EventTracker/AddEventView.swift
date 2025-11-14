@@ -8,11 +8,12 @@ import PhotosUI
 import MapKit
 
 struct AddEventView: View {
-    @State private var title = ""
+    @State private var name = ""
     @State private var description = ""
-    @State private var manualAddress = ""
-    @State private var date = Date()
+    @State private var location = ""
     @State private var time = Date()
+    @State private var duration = 1
+    @State private var details = ""
     
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var eventImage: UIImage? = nil
@@ -43,18 +44,30 @@ struct AddEventView: View {
                                 .padding(.horizontal, 20)
                             
                             VStack(spacing: 20) {
-                                // Title
+                                // Name
                                 VStack(alignment: .leading, spacing: 10){
-                                    Text("Title")
+                                    Text("Event Name")
                                         .foregroundColor(.white)
                                         .bold()
-                                    TextField("Event Title", text: $title)
+                                    TextField("Event Name", text: $name)
                                         .padding()
                                         .background(Color(UIColorFromRGB(0x312F2F)))
                                         .foregroundColor(.white)
                                         .cornerRadius(16)
                                 }
 
+                                // Details
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Details (max 120 chars)")
+                                        .foregroundColor(.white)
+                                        .bold()
+                                    TextField("Brief event details", text: $details)
+                                        .padding()
+                                        .background(Color(UIColorFromRGB(0x312F2F)))
+                                        .foregroundColor(.white)
+                                        .cornerRadius(16)
+                                }
+                                
                                 // Description
                                 VStack(alignment: .leading, spacing: 10) {
                                     Text("Description")
@@ -74,8 +87,8 @@ struct AddEventView: View {
                                         .foregroundColor(.white)
                                         .bold()
                                     
-                                    // Manual address
-                                    TextField("", text: $manualAddress, prompt: Text("Building, Room No.").foregroundColor(.gray))
+                                    // Location
+                                    TextField("", text: $location, prompt: Text("Building, Room No.").foregroundColor(.gray))
                                         .padding()
                                         .background(Color(UIColorFromRGB(0x312F2F)))
                                         .foregroundColor(.white)
@@ -124,8 +137,8 @@ struct AddEventView: View {
                                     }
                                 }
                                 
-                                // Date + Time pickers
-                                DatePicker("Date", selection: $date, displayedComponents: .date)
+                                // Date + Time picker
+                                DatePicker("Date & Time", selection: $time, displayedComponents: [.date, .hourAndMinute])
                                     .bold()
                                     .padding()
                                     .background(Color(UIColorFromRGB(0x312F2F)))
@@ -133,13 +146,25 @@ struct AddEventView: View {
                                     .cornerRadius(16)
                                     .colorScheme(.dark)
                                 
-                                DatePicker("Time", selection: $time, displayedComponents: .hourAndMinute)
-                                    .bold()
+                                // Duration picker
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Duration (hours)")
+                                        .foregroundColor(.white)
+                                        .bold()
+                                    Picker("Duration", selection: $duration) {
+                                        Text("1 hour").tag(1)
+                                        Text("2 hours").tag(2)
+                                        Text("3 hours").tag(3)
+                                        Text("4 hours").tag(4)
+                                        Text("6 hours").tag(6)
+                                        Text("8 hours").tag(8)
+                                    }
+                                    .pickerStyle(MenuPickerStyle())
                                     .padding()
                                     .background(Color(UIColorFromRGB(0x312F2F)))
                                     .foregroundColor(.white)
                                     .cornerRadius(16)
-                                    .colorScheme(.dark)
+                                }
                             }
                             .padding(.horizontal, 20)
                             .padding(.bottom, 80)
@@ -148,16 +173,18 @@ struct AddEventView: View {
                     
                     VStack {
                         Button(action: {
-                            let newEvent = EventData(
-                                title: title,
-                                description: description,
-                                address: manualAddress,
-                                location: pickedCoordinate,
-                                date: date,
-                                time: time
-                            )
-                            events.append(newEvent)
-                            dismiss()
+                            if let coord = pickedCoordinate {
+                                let newEvent = EventData(
+                                    name: name,
+                                    description: description,
+                                    coordinate: coord,
+                                    time: time,
+                                    duration: duration,
+                                    details: details
+                                )
+                                events.append(newEvent)
+                                dismiss()
+                            }
                         }) {
                             Text("Add Event")
                                 .padding()
