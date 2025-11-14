@@ -8,6 +8,8 @@ import SwiftData
 
 @main
 struct EventTrackerApp: App {
+    @StateObject private var ViewModel = APIViewModel()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
@@ -24,6 +26,7 @@ struct EventTrackerApp: App {
     var body: some Scene {
         WindowGroup {
             CreateAccountView()
+                .environmentObject(ViewModel)
         }
         .modelContainer(sharedModelContainer)
     }
