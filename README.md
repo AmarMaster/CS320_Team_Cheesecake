@@ -16,6 +16,26 @@ Make sure the following are installed on your system:
 - **PostgreSQL**
 - **Xcode** (for Swift frontend development)
 
+### ⚠️ Database Initialization Clarification
+You can initialize the backend database in **two supported ways**, depending on your deployment:
+
+
+#### **Option 1 — Local PostgreSQL (Recommended for Development)**
+You can run the database locally using your installed PostgreSQL instance. This is the method used in the existing setup steps below.
+
+
+#### **Option 2 — AWS (Production/Team Deployment Option)**
+You may alternatively initialize and host the database on **AWS RDS for PostgreSQL**.
+
+
+If using AWS:
+- Create an RDS PostgreSQL instance
+- Replace your local connection string with the AWS endpoint, username, and password
+- Ensure your IP or server has permission via AWS security groups
+
+
+> **Note:** Both options are supported. For development, use **local Postgres**. For production or shared team environments, AWS RDS may be used.
+
 
 ###  2. Clone the Repository
 ```bash
