@@ -30,5 +30,46 @@ npm install
 This installs all necessary Node.js packages listed in package.json
 
 ### 4. Set Up the Database
+```bash
+psql -U postgres
+```
+
+This runs the psql process from the terminal as the Postgres user
+
+```SQL
+CREATE DATABASE event_tracker_db;
+```
+This creates the database on the local machine
+
+```SQL
+\q
+```
+Exit the terminal
+
+```bash
+psql -U <your_user> -d event_tracker_db -f <path_to_datatabase_init.sql>
+```
+Run this from the terminal replacing the username and path to the database initialization file to create the tables in the datbase with their relations
+
+```bash
+psql -U <your_username> -d event_tracker_db
+```
+Connect to the database from the terminal again
+
+```SQL
+\COPY users (id, username, email, password, role, created_at)
+FROM 'mock_users.csv'
+DELIMITER ','
+CSV HEADER;
+```
+
+```SQL
+\COPY events (id, name, location, time, duration, details, description, adult_only, isUMASS, cost, outdoor, category, owner_id)
+FROM 'mock_events.csv'
+DELIMITER ','
+CSV HEADER;
+```
+
+Run these two commands once connected to the SQL database to input the mock data into the tables.
 
 
