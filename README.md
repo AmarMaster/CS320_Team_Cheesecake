@@ -25,7 +25,9 @@ cd CS320_Team_Cheesecake
 
 ### 3. Install Dependencies
 ```bash
+cd backendServer
 npm install
+cd ..
 ```
 This installs all necessary Node.js packages listed in package.json
 
@@ -72,4 +74,10 @@ CSV HEADER;
 
 Run these two commands once connected to the SQL database to input the mock data into the tables.
 
-
+### 5. Run the Backend
+```bash
+cd backendServer
+npm start
+```
+The following message should be shown and the backend will run until it is exited.
+"EventMapper backend listening on port xxx"
