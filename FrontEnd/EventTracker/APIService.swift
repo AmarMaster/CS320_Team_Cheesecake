@@ -23,6 +23,65 @@ class APIService {
         }
     }
     
+    func fetchFilteredEvents(
+        userID: String? = nil,
+        location: (lat: Double, lon: Double)? = nil,
+        radius: Int? = nil,
+        datetime: Date? = nil,
+        twentyoneplus: Bool? = nil,
+        cost: Double? = nil
+    ) async throws -> [EventData] {
+        
+        // Use URLComponents instead of concatenating here because convenience
+        var components = URLComponents(string: "\(baseURL)/getEventList")!
+        var items: [URLQueryItem] = []
+
+        if let userID = userID {
+            items.append(URLQueryItem(name: "userID", value: userID))
+        }
+
+        if let location = location {
+            let locString = "\(location.lat),\(location.lon)"
+            items.append(URLQueryItem(name: "location", value: locString))
+        }
+
+        if let radius = radius {
+            items.append(URLQueryItem(name: "radius", value: "\(radius)"))
+        }
+
+        if let datetime = datetime {
+            let formatter = DateFormatter()
+            // Format is: "YYYY-MM-DDTHH:MM:SS"
+            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+            let datetimeString = formatter.string(from: datetime)
+            items.append(URLQueryItem(name: "datetime", value: datetimeString))
+        }
+
+        if let twentyoneplus = twentyoneplus {
+            items.append(URLQueryItem(name: "twentyoneplus", value: twentyoneplus ? "true" : "false"))
+        }
+
+        if let cost = cost {
+            items.append(URLQueryItem(name: "cost", value: "\(cost)"))
+        }
+        
+        // queryItems added here
+        components.queryItems = items
+
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+
+        let (data, _) = try await URLSession.shared.data(from: url)
+        let response = try JSONDecoder().decode(AppJSResponse<EventListData>.self, from: data)
+
+        if response.data.success {
+            return response.data.events
+        } else {
+            throw APIError.serverError("Failed to fetch filtered events")
+        }
+    }
+    
     func createEvent(_ event: EventData, token: String) async throws -> EventData {
         guard let url = URL(string: "\(baseURL)/createEvent") else {
             throw APIError.invalidURL
