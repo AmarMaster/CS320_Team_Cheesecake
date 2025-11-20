@@ -30,6 +30,34 @@ class APIViewModel: ObservableObject {
         
         isLoading = false
     }
+    
+    func fetchFilteredEvents(
+        userID: String? = nil,
+        location: (lat: Double, lon: Double)? = nil,
+        radius: Int? = nil,
+        datetime: Date? = nil,
+        twentyoneplus: Bool? = nil,
+        cost: Double? = nil
+    ) async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let filtered = try await api.fetchFilteredEvents(
+                userID: userID,
+                location: location,
+                radius: radius,
+                datetime: datetime,
+                twentyoneplus: twentyoneplus,
+                cost: cost
+            )
+            self.events = filtered
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
 
     func createEvent(_ event: EventData, token: String) async {
         isLoading = true
