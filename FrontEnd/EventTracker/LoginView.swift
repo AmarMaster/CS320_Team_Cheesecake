@@ -71,7 +71,11 @@ struct LoginView: View {
                     }.padding(.horizontal, 20)
                         .padding(.vertical, 29)
                     
-
+                    if showError {
+                        Text("All fields are required.")
+                            .foregroundColor(.red)
+                            .font(.body)
+                    }
                     Spacer()
                     
                 }

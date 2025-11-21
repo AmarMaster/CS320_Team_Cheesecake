@@ -16,20 +16,22 @@ struct EventData: Identifiable, Codable {
     var name: String
     var description: String
     var location: EventLocation
+    var locationString: String
     var coordinate: CLLocationCoordinate2D?
     var time: Date
     var duration: Int
     var details: String
     
     enum CodingKeys: String, CodingKey {
-        case id, name, description, location, time, duration, details
+        case id, name, description, location, locationString, time, duration, details
     }
     
-    init(id: Int? = nil, name: String, description: String, coordinate: CLLocationCoordinate2D, time: Date, duration: Int, details: String) {
+    init(id: Int? = nil, name: String, description: String, coordinate: CLLocationCoordinate2D, locationString: String, time: Date, duration: Int, details: String) {
         self.id = id
         self.name = name
         self.description = description
         self.location = EventLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        self.locationString = locationString
         self.coordinate = coordinate
         self.time = time
         self.duration = duration
@@ -42,6 +44,7 @@ struct EventData: Identifiable, Codable {
         name = try container.decode(String.self, forKey: .name)
         description = try container.decode(String.self, forKey: .description)
         location = try container.decode(EventLocation.self, forKey: .location)
+        locationString = try container.decode(String.self, forKey: .locationString)
         time = try container.decode(Date.self, forKey: .time)
         duration = try container.decode(Int.self, forKey: .duration)
         details = try container.decode(String.self, forKey: .details)
@@ -54,6 +57,7 @@ struct EventData: Identifiable, Codable {
         try container.encode(name, forKey: .name)
         try container.encode(description, forKey: .description)
         try container.encode(location, forKey: .location)
+        try container.encode(locationString, forKey: .locationString)
         try container.encode(time, forKey: .time)
         try container.encode(duration, forKey: .duration)
         try container.encode(details, forKey: .details)
