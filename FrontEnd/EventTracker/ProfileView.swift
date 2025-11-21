@@ -75,12 +75,12 @@ struct ProfileView: View {
                             }
                             .foregroundColor(.white)
                             .font(.subheadline)
-                            HStack {
-                                Image(systemName: "phone")
-                                Text("999 999 9999")
-                            }
-                            .foregroundColor(.white)
-                            .font(.subheadline)
+//                            HStack {
+//                                Image(systemName: "phone")
+//                                Text("999 999 9999")
+//                            }
+//                            .foregroundColor(.white)
+//                            .font(.subheadline)
                         }
                         
                         // your events
@@ -96,29 +96,36 @@ struct ProfileView: View {
                         
                         VStack(spacing: 5) {
                             ForEach(events) { event in
-                                HStack(alignment: .center, spacing: 16){
+                                HStack(alignment: .top, spacing: 12) {
+                                    // event image placeholder
+                                    VStack {
+                                        RoundedRectangle(cornerRadius: 8)
+                                             .fill(Color.gray.opacity(0.3))
+                                             .frame(width: 100, height: 100)
+                                             .overlay(
+                                                 Image(systemName: "photo")
+                                                     .foregroundColor(.gray)
+                                                     .font(.title3)
+                                             )
+                                    }.frame(height: 100)
+                                 
                                     
-                                    VStack(alignment: .leading, spacing: 10) {
-                
-                                       Text(event.name)
-                                           .foregroundColor(.white)
-                                           .bold()
-                                           .font(.title3)
-                                       
-                                        eventLocationView(event.location)
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text(event.name)
+                                            .foregroundColor(.white)
+                                            .bold()
+                                            .font(.title3)
+                                        
+                                        eventLocationView(event.locationString)
                                         eventDateView(event.time)
                                         eventTimeView(event.time)
-                                   }
-                                   .padding()
-                                   .frame(maxWidth: .infinity)
-                                   .background(Color(UIColorFromRGB(0x312F2F)))
-                                   .cornerRadius(16)
-                                   .padding(.horizontal, 20)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                                 }
-           
-                            
-                                
-                                
+                                .padding()
+                                .background(Color(UIColorFromRGB(0x312F2F)))
+                                .cornerRadius(16)
+                                .padding(.horizontal, 20)
                             }
                         }
                         
@@ -152,10 +159,19 @@ struct ProfileView: View {
 
     }
     
-    private func eventLocationView(_ location: EventLocation) -> some View {
+    private func eventLocationView(_ locationText: String) -> some View {
         HStack {
             Image(systemName: "mappin.and.ellipse")
-            Text("\(location.latitude), \(location.longitude)")
+            Text(locationText)
+        }
+        .foregroundColor(.white)
+        .font(.subheadline)
+    }
+    
+    private func eventCoordinateView(_ location: EventLocation) -> some View {
+        HStack {
+            Image(systemName: "location")
+            Text("\(location.latitude, specifier: "%.4f"), \(location.longitude, specifier: "%.4f")")
         }
         .foregroundColor(.white)
         .font(.subheadline)

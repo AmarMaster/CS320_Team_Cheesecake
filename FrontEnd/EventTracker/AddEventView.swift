@@ -20,6 +20,8 @@ struct AddEventView: View {
     @State private var time = Date()
     @State private var duration = 1
     @State private var details = ""
+    @State private var twentyoneplus = false
+    @State private var cost: Double = 0
     
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var eventImage: UIImage? = nil
@@ -85,6 +87,45 @@ struct AddEventView: View {
                                         .background(Color(UIColorFromRGB(0x312F2F)))
                                         .foregroundColor(.white)
                                         .cornerRadius(16)
+                                }
+                                
+                                // image
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Event Image (Optional)")
+                                        .foregroundColor(.white)
+                                        .bold()
+                                    
+                                    PhotosPicker(selection: $selectedItem, matching: .images) {
+                                        HStack {
+                                            if let eventImage {
+                                                Image(uiImage: eventImage)
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fill)
+                                                    .frame(width: 60, height: 60)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            } else {
+                                                Image(systemName: "photo")
+                                                    .foregroundColor(.gray)
+                                                    .font(.title2)
+                                            }
+                                            
+                                            Text(eventImage == nil ? "Add Image" : "Change Image")
+                                                .foregroundColor(.gray)
+                                            
+                                            Spacer()
+                                        }
+                                        .padding()
+                                        .background(Color(UIColorFromRGB(0x312F2F)))
+                                        .cornerRadius(16)
+                                    }
+                                    .onChange(of: selectedItem, initial: false) { oldItem, newItem in
+                                        Task {
+                                            if let data = try? await newItem?.loadTransferable(type: Data.self),
+                                               let uiImage = UIImage(data: data) {
+                                                eventImage = uiImage
+                                            }
+                                        }
+                                    }
                                 }
                                 
                                 // Location Input + Map
@@ -153,10 +194,11 @@ struct AddEventView: View {
                                     .colorScheme(.dark)
                                 
                                 // Duration picker
-                                VStack(alignment: .leading, spacing: 10) {
+                                HStack {
                                     Text("Duration (hours)")
                                         .foregroundColor(.white)
                                         .bold()
+                                    Spacer()
                                     Picker("Duration", selection: $duration) {
                                         Text("1 hour").tag(1)
                                         Text("2 hours").tag(2)
@@ -166,11 +208,41 @@ struct AddEventView: View {
                                         Text("8 hours").tag(8)
                                     }
                                     .pickerStyle(MenuPickerStyle())
-                                    .padding()
-                                    .background(Color(UIColorFromRGB(0x312F2F)))
                                     .foregroundColor(.white)
-                                    .cornerRadius(16)
                                 }
+                                .padding()
+                                .background(Color(UIColorFromRGB(0x312F2F)))
+                                .foregroundColor(.white)
+                                .cornerRadius(16)
+                                .colorScheme(.dark)
+                                
+                                // 21+ toggle
+                                HStack {
+                                    Text("21+ Only")
+                                        .foregroundColor(.white)
+                                        .bold()
+                                    Spacer()
+                                    Toggle("", isOn: $twentyoneplus)
+                                        .toggleStyle(SwitchToggleStyle(tint: Color(UIColorFromRGB(0xFF5934))))
+                                }
+                                .padding()
+                                .background(Color(UIColorFromRGB(0x312F2F)))
+                                .cornerRadius(16)
+                                
+                                // cost slider
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack {
+                                        Text("Cost: $\(Int(cost))")
+                                            .foregroundColor(.white)
+                                            .bold()
+                                        Spacer()
+                                    }
+                                    Slider(value: $cost, in: 0...200, step: 1)
+                                        .accentColor(Color(UIColorFromRGB(0xFF5934)))
+                                }
+                                .padding()
+                                .background(Color(UIColorFromRGB(0x312F2F)))
+                                .cornerRadius(16)
                             }
                             .padding(.horizontal, 20)
                             .padding(.bottom, 80)
@@ -192,6 +264,7 @@ struct AddEventView: View {
                                     name: name,
                                     description: description,
                                     coordinate: coord,
+                                    locationString: location,
                                     time: time,
                                     duration: duration,
                                     details: details

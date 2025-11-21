@@ -75,35 +75,37 @@ struct FriendListView: View {
 
                         LazyVStack(spacing: 10) {
                             ForEach(filteredFriends, id: \.id) { friend in
-                                HStack {
-                                    // Profile Picture
-                                    Circle()
-                                        .fill(Color.gray.opacity(0.3))
-                                        .frame(width: 50, height: 50)
-                                        .overlay(
-                                            Text(String(friend.name.prefix(1)))
-                                                .foregroundColor(.white)
-                                                .font(.title2)
-                                                .fontWeight(.semibold)
-                                        )
-                                    
-                                    // Friend Name
-                                    Text(friend.name)
-                                        .foregroundColor(.white)
-                                        .font(.title3)
-                                        .fontWeight(.medium)
-                                    
-                                    Spacer()
-                                    
-                                    // Arrow
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.white)
-                                        .font(.system(size: 16))
+                                NavigationLink(destination: FriendProfileView(friendName: friend.name, fixedName: fixedName, fixedEmail: fixedEmail)) {
+                                    HStack {
+                                        // Profile Picture
+                                        Circle()
+                                            .fill(Color.gray.opacity(0.3))
+                                            .frame(width: 50, height: 50)
+                                            .overlay(
+                                                Text(String(friend.name.prefix(1)))
+                                                    .foregroundColor(.white)
+                                                    .font(.title2)
+                                                    .fontWeight(.semibold)
+                                            )
+                                        
+                                        // Friend Name
+                                        Text(friend.name)
+                                            .foregroundColor(.white)
+                                            .font(.title3)
+                                            .fontWeight(.medium)
+                                        
+                                        Spacer()
+                                        
+                                        // Arrow
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 16))
+                                    }
+                                    .padding()
+                                    .background(Color(UIColorFromRGB(0x312F2F)))
+                                    .cornerRadius(16)
+                                    .padding(.horizontal, 20)
                                 }
-                                .padding()
-                                .background(Color(UIColorFromRGB(0x312F2F)))
-                                .cornerRadius(16)
-                                .padding(.horizontal, 20)
                             }
                         }
                     }
