@@ -11,7 +11,7 @@ struct BottomNavBar: View {
     
     var body: some View {
         HStack {
-            Button(action: {}) {
+            NavigationLink(destination: FriendListView(fixedName: fixedName, fixedEmail: fixedEmail)) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.white)
                     .font(.system(size: 30))
