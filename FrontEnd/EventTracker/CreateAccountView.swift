@@ -61,13 +61,21 @@ struct CreateAccountView: View {
                             .foregroundColor(.white)
                             .cornerRadius(16)
                         }.padding(.horizontal, 20)
-                        .padding(.vertical, 29)
+                        .padding(.top, 29)
+                        .padding(.bottom, 10)
                     
                     if showError {
                         Text("All fields are required.")
                             .foregroundColor(.red)
                             .font(.body)
                     }
+                    
+                    NavigationLink(destination: LoginView(fixedName: name, fixedEmail: email)){
+                        Text("Have an account? Login")
+                    }
+                    .padding(.leading, 20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
                     Spacer()
                     
 

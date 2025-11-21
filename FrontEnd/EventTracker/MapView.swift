@@ -149,7 +149,8 @@ struct MapView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
-            Spacer()
+            BottomNavBar(fixedName: fixedName, fixedEmail: fixedEmail)
+                .padding(.vertical, 29)
         }
         .navigationBarHidden(true)
         .background(Color(UIColorFromRGB(0x1B1A1A)))
