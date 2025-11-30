@@ -68,3 +68,23 @@ CREATE TABLE IF NOT EXISTS rsvps (
 
     PRIMARY KEY (user_id, event_id)
 );
+
+--Creates the friendships TABLE
+-- Links users to their friends within the application
+-- The 'status' column indicates whether the friendship is pending, accepted, or blocked
+-- The combination of user_id_1 and user_id_2 is set to be UNIQUE to prevent duplicate friendship requests
+CREATE TABLE IF NOT EXISTS friendships (
+    user_id_1 INT NOT NULL, -- The user who initiated the request
+    user_id_2 INT NOT NULL, -- The user who receives/accepts the request
+    status VARCHAR(50) NOT NULL DEFAULT 'pending', -- 'pending', 'accepted', 'blocked'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- Ensures a user cannot add themselves
+    CHECK (user_id_1 <> user_id_2),
+
+    -- Ensures the same directed request (User A -> User B) is not duplicated
+    UNIQUE (user_id_1, user_id_2),
+
+    FOREIGN KEY (user_id_1) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id_2) REFERENCES users(id) ON DELETE CASCADE
+);
