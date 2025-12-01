@@ -16,6 +16,8 @@ struct ProfileView: View {
     @State private var profileImage: UIImage? = nil
     
     @State private var events: [EventData] = []
+    @State private var rsvpEvents: [EventData] = []
+    @State private var selectedEventType = 0 // 0: Hosted, 1: RSVP, 2: Favorite
     
     var body: some View {
         NavigationStack {
@@ -50,6 +52,10 @@ struct ProfileView: View {
                                     Circle()
                                         .fill(Color.gray.opacity(0.3))
                                         .frame(width: 120, height: 120)
+                                    
+                                    Text(String(fixedName.prefix(1)).uppercased())
+                                        .font(.system(size: 48, weight: .bold))
+                                        .foregroundColor(.white)
                                 }
                             }
                         }
@@ -83,30 +89,72 @@ struct ProfileView: View {
 //                            .font(.subheadline)
                         }
                         
-                        // your events
+                        // events section header with slider
                         VStack {
-                            Text("Your Events")
-                                .foregroundColor(.white)
-                                .font(.title2)
-                                .bold()
-                                .padding(.leading, 20)
+                            HStack {
+                                Text(["Hosted Events", "RSVP Events", "Favorite Events"][selectedEventType])
+                                    .foregroundColor(.white)
+                                    .font(.title2)
+                                    .bold()
+                                
+                                Spacer()
+                                
+                                HStack(spacing: 0) {
+                                    Button("Hosted") {
+                                        selectedEventType = 0
+                                    }
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 6)
+                                    .background(selectedEventType == 0 ? Color(UIColorFromRGB(0xFF5934)) : Color.clear)
+                                    .foregroundColor(.white)
+                                    .font(.caption)
+                                    
+                                    Button("RSVP") {
+                                        selectedEventType = 1
+                                    }
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 6)
+                                    .background(selectedEventType == 1 ? Color(UIColorFromRGB(0xFF5934)) : Color.clear)
+                                    .foregroundColor(.white)
+                                    .font(.caption)
+                                    
+                                    Button("Favorite") {
+                                        selectedEventType = 2
+                                    }
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 6)
+                                    .background(selectedEventType == 2 ? Color(UIColorFromRGB(0xFF5934)) : Color.clear)
+                                    .foregroundColor(.white)
+                                    .font(.caption)
+                                }
+                                .background(Color(UIColorFromRGB(0x312F2F)))
+                                .cornerRadius(8)
+                            }
+                            .padding(.horizontal, 20)
                         }
                         .padding(.top, 20)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                         
                         VStack(spacing: 5) {
                             ForEach(events) { event in
                                 HStack(alignment: .top, spacing: 12) {
-                                    // event image placeholder
+                                    // event image
                                     VStack {
-                                        RoundedRectangle(cornerRadius: 8)
-                                             .fill(Color.gray.opacity(0.3))
-                                             .frame(width: 100, height: 100)
-                                             .overlay(
-                                                 Image(systemName: "photo")
-                                                     .foregroundColor(.gray)
-                                                     .font(.title3)
-                                             )
+                                        if let imageData = event.imageData, let uiImage = UIImage(data: imageData) {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 100, height: 100)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        } else {
+                                            RoundedRectangle(cornerRadius: 8)
+                                                 .fill(Color.gray.opacity(0.3))
+                                                 .frame(width: 100, height: 100)
+                                                 .overlay(
+                                                     Image(systemName: "photo")
+                                                         .foregroundColor(.gray)
+                                                         .font(.title3)
+                                                 )
+                                        }
                                     }.frame(height: 100)
                                  
                                     

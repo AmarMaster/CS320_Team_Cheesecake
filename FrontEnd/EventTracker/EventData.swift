@@ -5,6 +5,7 @@
 
 import Foundation
 import CoreLocation
+import UIKit
 
 struct EventLocation: Codable {
     let latitude: Double
@@ -21,12 +22,13 @@ struct EventData: Identifiable, Codable {
     var time: Date
     var duration: Int
     var details: String
+    var imageData: Data?
     
     enum CodingKeys: String, CodingKey {
-        case id, name, description, location, locationString, time, duration, details
+        case id, name, description, location, locationString, time, duration, details, imageData
     }
     
-    init(id: Int? = nil, name: String, description: String, coordinate: CLLocationCoordinate2D, locationString: String, time: Date, duration: Int, details: String) {
+    init(id: Int? = nil, name: String, description: String, coordinate: CLLocationCoordinate2D, locationString: String, time: Date, duration: Int, details: String, imageData: Data? = nil) {
         self.id = id
         self.name = name
         self.description = description
@@ -36,6 +38,7 @@ struct EventData: Identifiable, Codable {
         self.time = time
         self.duration = duration
         self.details = details
+        self.imageData = imageData
     }
     
     init(from decoder: Decoder) throws {
@@ -48,6 +51,7 @@ struct EventData: Identifiable, Codable {
         time = try container.decode(Date.self, forKey: .time)
         duration = try container.decode(Int.self, forKey: .duration)
         details = try container.decode(String.self, forKey: .details)
+        imageData = try container.decodeIfPresent(Data.self, forKey: .imageData)
         coordinate = CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude)
     }
     
@@ -61,5 +65,6 @@ struct EventData: Identifiable, Codable {
         try container.encode(time, forKey: .time)
         try container.encode(duration, forKey: .duration)
         try container.encode(details, forKey: .details)
+        try container.encodeIfPresent(imageData, forKey: .imageData)
     }
 }

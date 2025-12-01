@@ -20,7 +20,7 @@ struct TappableMap: UIViewRepresentable {
             // Update picked coordinate with tapped location
             parent.pickedCoordinate = coordinate
 
-            // Preserve zoom (span) but move center to tapped coordinate
+            // zoom but move center to tapped coordinate
             parent.region = MKCoordinateRegion(
                 center: coordinate,
                 span: parent.region.span

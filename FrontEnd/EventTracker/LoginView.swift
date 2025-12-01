@@ -32,6 +32,7 @@ struct LoginView: View {
                     
                     VStack(spacing: 12) {
                         TextField("Name or Email", text: $nameOrEmail, prompt: Text("Name or Email").foregroundColor(.gray))
+                            .textInputAutocapitalization(.never)
                             .padding()
                             .background(Color(UIColorFromRGB(0x312F2F)))
                             .foregroundColor(.white)
@@ -69,13 +70,20 @@ struct LoginView: View {
                             .cornerRadius(16)
                         
                     }.padding(.horizontal, 20)
-                        .padding(.vertical, 29)
+                        .padding(.top, 29)
+                        .padding(.bottom, 10)
                     
                     if showError {
                         Text("All fields are required.")
                             .foregroundColor(.red)
                             .font(.body)
                     }
+                    NavigationLink(destination: CreateAccountView()){
+                        Text("Don't have an account? Create an account")
+                    }
+                    .padding(.leading, 20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
                     Spacer()
                     
                 }
