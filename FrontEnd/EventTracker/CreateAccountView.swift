@@ -29,11 +29,13 @@ struct CreateAccountView: View {
                     
                     VStack(spacing: 12) {
                         TextField("Name", text: $name, prompt: Text("Name").foregroundColor(.gray))
+                            .textInputAutocapitalization(.never)
                             .padding()
                             .background(Color(UIColorFromRGB(0x312F2F)))
                             .foregroundColor(.white)
                             .cornerRadius(16)
                         TextField("Email", text: $email, prompt: Text("Email").foregroundColor(.gray))
+                            .textInputAutocapitalization(.never)
                             .padding()
                             .background(Color(UIColorFromRGB(0x312F2F)))
                             .foregroundColor(.white)
@@ -92,3 +94,4 @@ struct CreateAccountView: View {
 #Preview {
     CreateAccountView()
 }
+

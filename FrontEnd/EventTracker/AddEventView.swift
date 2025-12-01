@@ -260,6 +260,7 @@ struct AddEventView: View {
                             }
                             else if let coord = pickedCoordinate {
                                 showError = false
+                                let imageData = eventImage?.jpegData(compressionQuality: 0.8)
                                 let newEvent = EventData(
                                     name: name,
                                     description: description,
@@ -267,7 +268,8 @@ struct AddEventView: View {
                                     locationString: location,
                                     time: time,
                                     duration: duration,
-                                    details: details
+                                    details: details,
+                                    imageData: imageData
                                 )
                                 events.append(newEvent)
                                 dismiss()
