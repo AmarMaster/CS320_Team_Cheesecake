@@ -29,47 +29,25 @@ npm install
 ```
 This installs all necessary Node.js packages listed in package.json
 
-### 4. Set Up the Database
+### 4. Gain Access to the Database
+
+Find your IP address and Subnet:
+
+Windows:
 ```bash
-psql -U postgres
+ipconfig
 ```
-
-This runs the psql process from the terminal as the Postgres user
-
-```SQL
-CREATE DATABASE event_tracker_db;
-```
-This creates the database on the local machine
-
-```SQL
-\q
-```
-Exit the terminal
-
+Linux/Mac:
 ```bash
-psql -U <your_user> -d event_tracker_db -f <path_to_datatabase_init.sql>
-```
-Run this from the terminal replacing the username and path to the database initialization file to create the tables in the datbase with their relations
-
-```bash
-psql -U <your_username> -d event_tracker_db
-```
-Connect to the database from the terminal again
-
-```SQL
-\COPY users (id, username, email, password, role, created_at)
-FROM 'mock_users.csv'
-DELIMITER ','
-CSV HEADER;
+ifconfig
 ```
 
-```SQL
-\COPY events (id, name, location, time, duration, details, description, adult_only, isUMASS, cost, outdoor, category, owner_id)
-FROM 'mock_events.csv'
-DELIMITER ','
-CSV HEADER;
-```
+Find both the IP address of your local machine (ex. inet 198.162.0.x) and the netmask (ex. 255.255.255.0).
 
-Run these two commands once connected to the SQL database to input the mock data into the tables.
+Send both of these to [colbygross@umass.edu](malito:colbygross@umass.edu) to have the subnet permitted in an AWS security group.
+
+A different submission must be used for the different networks that the app will be run on.
+
+Make sure the .env file is inside the project with the correct database credentials. 
 
 
