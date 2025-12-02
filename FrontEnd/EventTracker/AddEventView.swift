@@ -269,6 +269,8 @@ struct AddEventView: View {
                                     time: time,
                                     duration: duration,
                                     details: details,
+                                    adultOnly: twentyoneplus,
+                                    cost: cost,
                                     imageData: imageData
                                 )
                                 events.append(newEvent)

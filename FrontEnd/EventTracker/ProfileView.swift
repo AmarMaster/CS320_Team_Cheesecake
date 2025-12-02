@@ -135,45 +135,59 @@ struct ProfileView: View {
                         .padding(.top, 20)
                         
                         VStack(spacing: 5) {
-                            ForEach(events) { event in
-                                HStack(alignment: .top, spacing: 12) {
-                                    // event image
-                                    VStack {
-                                        if let imageData = event.imageData, let uiImage = UIImage(data: imageData) {
-                                            Image(uiImage: uiImage)
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(width: 100, height: 100)
-                                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        } else {
-                                            RoundedRectangle(cornerRadius: 8)
-                                                 .fill(Color.gray.opacity(0.3))
-                                                 .frame(width: 100, height: 100)
-                                                 .overlay(
-                                                     Image(systemName: "photo")
-                                                         .foregroundColor(.gray)
-                                                         .font(.title3)
-                                                 )
-                                        }
-                                    }.frame(height: 100)
-                                 
-                                    
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text(event.name)
-                                            .foregroundColor(.white)
-                                            .bold()
-                                            .font(.title3)
+                            ForEach(Array(events.enumerated()), id: \.offset) { index, event in
+                                NavigationLink(destination: EventInfoView(event: event, fixedName: fixedName, fixedEmail: fixedEmail, events: $events, eventIndex: index)) {
+                                    HStack(alignment: .top, spacing: 12) {
+                                        // event image
+                                        VStack {
+                                            if let imageData = event.imageData, let uiImage = UIImage(data: imageData) {
+                                                Image(uiImage: uiImage)
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fill)
+                                                    .frame(width: 100, height: 100)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            } else {
+                                                RoundedRectangle(cornerRadius: 8)
+                                                     .fill(Color.gray.opacity(0.3))
+                                                     .frame(width: 100, height: 100)
+                                                     .overlay(
+                                                         Image(systemName: "photo")
+                                                             .foregroundColor(.gray)
+                                                             .font(.title3)
+                                                     )
+                                            }
+                                        }.frame(height: 100)
+                                     
                                         
-                                        eventLocationView(event.locationString)
-                                        eventDateView(event.time)
-                                        eventTimeView(event.time)
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            Text(event.name)
+                                                .foregroundColor(.white)
+                                                .bold()
+                                                .font(.title3)
+                                            
+                                            eventLocationView(event.locationString)
+                                            eventDateView(event.time)
+                                            eventTimeView(event.time)
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        
+                                        // Arrow
+                                        VStack {
+                                            Spacer()
+                                            Image(systemName: "chevron.right")
+                                                .foregroundColor(.white)
+                                                .font(.system(size: 16))
+                                            Spacer()
+                                        }
+                                        .frame(height: 100)
                                     }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding()
+                                    .background(Color(UIColorFromRGB(0x312F2F)))
+                                    .cornerRadius(16)
+                                    .padding(.horizontal, 20)
                                 }
-                                .padding()
-                                .background(Color(UIColorFromRGB(0x312F2F)))
-                                .cornerRadius(16)
-                                .padding(.horizontal, 20)
+                                
+                                
                             }
                         }
                         
