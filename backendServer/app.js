@@ -354,7 +354,29 @@ app.post('/createEvent', (req, res) => {
         description: String
       }
   */
-  res.send("UMapper Web API.");
+
+  db.one(
+    'INSERT INTO events (name, location, time, duration, details, description, owner_id) VALUES ({name}, ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326), {time}, {duration}, {details}, {description}, {owner_id}); ',
+    {
+      name: req['data']['event']['name'],
+      longitude: req['data']['event']['location']['longitude'],
+      latitude: req['data']['event']['location']['latitude'],
+      time: req['data']['event']['time'],
+      duration: req['data']['event']['duration'],
+      details: req['data']['event']['details'],
+      description: req['data']['event']['description'],
+      owner_id: req['data']['userID']
+    }
+  ).then( _ => {
+      res.status(200).send({data:{success: true, event: req['data']['event']}});
+      return;
+    }
+  ).catch( _ => {
+      res.locals.message = `Error creating event.`;
+      res.status(403).send({data:{success: false, event: undefined}});
+      return;
+    }
+  );
 });
 
 // User edits or delete event, returns the updated event
@@ -390,7 +412,29 @@ app.post('/changeEvent', (req, res) => {
         description: String
       }
   */
-  res.send("UMapper Web API.");
+
+  db.none("UPDATE events SET name = {name}, location = ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326), time = {time}, duration = {duration}, details = {details}, description = {description} WHERE id = {event_id} AND owner_id = {owner_id}; ",
+    {
+      name: req['data']['event']['name'],
+      longitude: req['data']['event']['location']['longitude'],
+      latitude: req['data']['event']['location']['latitude'],
+      time: req['data']['event']['time'],
+      duration: req['data']['event']['duration'],
+      details: req['data']['event']['details'],
+      description: req['data']['event']['description'],
+      event_id: req['data']['eventID'],
+      owner_id: req['data']['userID']
+    }
+  ).then( _ => {
+      res.status(200).send({data:{success: true, event: req['data']['event']}});
+      return;
+    }
+  ).catch( _ => {
+      res.locals.message = `Error updating event.`;
+      res.status(403).send({data:{success: false, event: undefined}});
+      return;
+    }
+  );
 });
 
 // User RSVPs/changes RSVP to event
