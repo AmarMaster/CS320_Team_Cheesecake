@@ -60,8 +60,8 @@ struct EventsMap: UIViewRepresentable {
         uiView.removeAnnotations(uiView.annotations)
 
         let annotations = events.compactMap { event -> MKPointAnnotation? in
-            guard let coord = event.coordinate else { return nil }
-            // Map markers here...
+            let coord = event.coordinate
+            
             let annotation = MKPointAnnotation()
             annotation.coordinate = coord
             annotation.title = event.name

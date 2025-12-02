@@ -18,17 +18,19 @@ struct EventData: Identifiable, Codable {
     var description: String
     var location: EventLocation
     var locationString: String
-    var coordinate: CLLocationCoordinate2D?
+    var coordinate: CLLocationCoordinate2D
     var time: Date
     var duration: Int
     var details: String
+    var adultOnly: Bool
+    var cost: Double
     var imageData: Data?
     
     enum CodingKeys: String, CodingKey {
-        case id, name, description, location, locationString, time, duration, details, imageData
+        case id, name, description, location, locationString, time, duration, details, adultOnly, cost, imageData
     }
     
-    init(id: Int? = nil, name: String, description: String, coordinate: CLLocationCoordinate2D, locationString: String, time: Date, duration: Int, details: String, imageData: Data? = nil) {
+    init(id: Int? = nil, name: String, description: String, coordinate: CLLocationCoordinate2D, locationString: String, time: Date, duration: Int, details: String, adultOnly: Bool = false, cost: Double = 0, imageData: Data? = nil) {
         self.id = id
         self.name = name
         self.description = description
@@ -38,6 +40,8 @@ struct EventData: Identifiable, Codable {
         self.time = time
         self.duration = duration
         self.details = details
+        self.adultOnly = adultOnly
+        self.cost = cost
         self.imageData = imageData
     }
     
@@ -51,6 +55,8 @@ struct EventData: Identifiable, Codable {
         time = try container.decode(Date.self, forKey: .time)
         duration = try container.decode(Int.self, forKey: .duration)
         details = try container.decode(String.self, forKey: .details)
+        adultOnly = try container.decodeIfPresent(Bool.self, forKey: .adultOnly) ?? false
+        cost = try container.decodeIfPresent(Double.self, forKey: .cost) ?? 0
         imageData = try container.decodeIfPresent(Data.self, forKey: .imageData)
         coordinate = CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude)
     }
@@ -65,6 +71,8 @@ struct EventData: Identifiable, Codable {
         try container.encode(time, forKey: .time)
         try container.encode(duration, forKey: .duration)
         try container.encode(details, forKey: .details)
+        try container.encode(adultOnly, forKey: .adultOnly)
+        try container.encode(cost, forKey: .cost)
         try container.encodeIfPresent(imageData, forKey: .imageData)
     }
 }
