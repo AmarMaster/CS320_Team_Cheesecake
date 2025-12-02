@@ -2,8 +2,6 @@
 //  FriendListView.swift
 //  EventTracker
 //
-//  Created by Nguyen Nhat Hong Anh on 11/19/25.
-//
 
 import SwiftUI
 
