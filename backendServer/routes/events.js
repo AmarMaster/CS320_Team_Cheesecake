@@ -267,4 +267,55 @@ router.delete('/:id', verifyToken, async (req, res) => {
   }
 });
 
+
+// POST /api/events/:id/status - Update RSVP/Favorite/Hosted status for a user and event
+router.post('/:id/status', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+    const { status } = req.body;
+
+    // Validate event ID
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid event ID' });
+    }
+
+    // Validate status
+    const validStatuses = ['Attending', 'Favorite', 'Hosted'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status value' });
+    }
+
+    // If Hosted, check if user is the owner
+    if (status === 'Hosted') {
+      const event = await db.oneOrNone('SELECT owner_id FROM events WHERE id = $1', [id]);
+      if (!event) {
+        return res.status(404).json({ success: false, message: 'Event not found' });
+      }
+      if (event.owner_id !== userId) {
+        return res.status(403).json({ success: false, message: 'Only the event owner can set Hosted status' });
+      }
+    }
+
+    // Upsert into rsvps table
+    const upsertQuery = `
+      INSERT INTO rsvps (user_id, event_id, status, created_at)
+      VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+      ON CONFLICT (user_id, event_id)
+      DO UPDATE SET status = EXCLUDED.status, created_at = CURRENT_TIMESTAMP
+      RETURNING user_id, event_id, status
+    `;
+    const result = await db.one(upsertQuery, [userId, id, status]);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Status updated',
+      data: result
+    });
+  } catch (err) {
+    console.error('Error updating event status:', err);
+    return res.status(500).json({ success: false, message: 'Failed to update status' });
+  }
+});
+
 module.exports = router;
