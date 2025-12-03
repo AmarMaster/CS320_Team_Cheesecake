@@ -15,7 +15,20 @@ struct ProfileView: View {
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var profileImage: UIImage? = nil
     
-    @State private var events: [EventData] = []
+    @State private var events: [EventData] = [
+        EventData(
+            name: "Sample Event",
+            description: "This is a sample event",
+            coordinate: CLLocationCoordinate2D(latitude: 42.391155, longitude: -72.526711),
+            locationString: "UMass Amherst",
+            time: Date(),
+            duration: 2,
+            details: "Sample event details",
+            adultOnly: false,
+            cost: 0,
+            owner_id: 1
+        )
+    ]
     @State private var rsvpEvents: [EventData] = []
     @State private var selectedEventType = 0 // 0: Hosted, 1: RSVP, 2: Favorite
     

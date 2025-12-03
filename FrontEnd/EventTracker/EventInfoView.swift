@@ -15,6 +15,9 @@ struct EventInfoView: View {
     
     @State private var region: MKCoordinateRegion
     
+    // user ID get from authentication
+    private let currentUserId = 1
+    
     
     init(event: EventData, fixedName: String, fixedEmail: String, events: Binding<[EventData]>, eventIndex: Int) {
         self.event = event
@@ -205,17 +208,19 @@ struct EventInfoView: View {
                         .padding(.top, 15)
                         
                         
-                        // edit
-                        NavigationLink(destination: EditEventView(fixedName: fixedName, fixedEmail: fixedEmail, events: $events, eventIndex: eventIndex)) {
-                            Text("Edit Event")
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color(UIColorFromRGB(0xFF5934)))
-                                .foregroundColor(.white)
-                                .cornerRadius(16)
+                        // edit - only show if user owns the event
+                        if event.owner_id == currentUserId {
+                            NavigationLink(destination: EditEventView(fixedName: fixedName, fixedEmail: fixedEmail, events: $events, eventIndex: eventIndex)) {
+                                Text("Edit Event")
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color(UIColorFromRGB(0xFF5934)))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(16)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 29)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 29)
                         
                         BottomNavBar(fixedName: fixedName, fixedEmail: fixedEmail)
                     }

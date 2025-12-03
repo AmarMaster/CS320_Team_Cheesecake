@@ -271,6 +271,7 @@ struct AddEventView: View {
                                     details: details,
                                     adultOnly: twentyoneplus,
                                     cost: cost,
+                                    owner_id: 1,
                                     imageData: imageData
                                 )
                                 events.append(newEvent)
