@@ -19,12 +19,21 @@ struct BottomNavBar: View {
 
             Spacer()
             
+//            NavigationLink(destination: MapView(fixedName: fixedName, fixedEmail: fixedEmail)
+//                .environmentObject(APIViewModel())) {
+//                Image(systemName: "map")
+//                    .foregroundColor(.white)
+//                    .font(.system(size: 30))
+//            }
             NavigationLink(destination: MapView(fixedName: fixedName, fixedEmail: fixedEmail)
                 .environmentObject(APIViewModel())) {
-                Image(systemName: "map")
-                    .foregroundColor(.white)
-                    .font(.system(size: 30))
+                Image("cheesecakeLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(height: 50)
+
             }
+             
             
             Spacer()
             

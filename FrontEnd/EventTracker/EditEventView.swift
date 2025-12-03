@@ -285,6 +285,7 @@ struct EditEventView: View {
                                 showError = false
                                 let imageData = eventImage?.jpegData(compressionQuality: 0.8)
                                 let updatedEvent = EventData(
+                                    id: events[eventIndex].id,
                                     name: name,
                                     description: description,
                                     coordinate: coord,
@@ -294,6 +295,7 @@ struct EditEventView: View {
                                     details: details,
                                     adultOnly: twentyoneplus,
                                     cost: cost,
+                                    owner_id: events[eventIndex].owner_id,
                                     imageData: imageData
                                 )
                                 if eventIndex < events.count {

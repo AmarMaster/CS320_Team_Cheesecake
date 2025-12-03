@@ -24,6 +24,12 @@ struct LoginView: View {
                 VStack {
                     Spacer().frame(height: 50)
 
+                    Image("cheesecakeLogo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 200)
+                        .padding(.bottom, 20)
+
                     Text("Login")
                         .font(.title)
                         .foregroundColor(.white)
