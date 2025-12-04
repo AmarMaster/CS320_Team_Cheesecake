@@ -9,7 +9,9 @@ const jwt = require("jsonwebtoken");
 
 // PostgreSQL integration
 const pgp = require('pg-promise')(/* options */)
-const db = require('./db.js');
+//const db = require('./db.js');
+ const db = pgp('postgres://zacharya:admin@localhost:5432/eventtracker-db');
+ 
 
 // Import routes
 var indexRouter = require('./routes/index');
@@ -218,109 +220,161 @@ app.get('/getEventList', (req, res) => {
       }
   */
   const uid = req.query.userID;
-  if (res.query.location && res.query.radius){
-    const location = req.query.location.split(','); // [longitude, latitude]
-    const latitude = parseFloat(location[0]);
-    const longitude = parseFloat(location[1]);
-    const radius = parseInt(req.query.radius);
-  } else {
-    const location = null;
-    const latitude = null;
-    const longitude = null;
-    const radius = null;
-  }
-  if (req.query.datetime && Date.parse(req.query.datetime)){
-    const datetime = new Date(req.query.datetime).toISOString();
-    const dateOnly = datetime.slice(17,19) === '11'; // if seconds are 11, only filter by date
-  } else {
-    const datetime = null;
-    const dateOnly = null;
-  }
-  if (req.query.twentyoneplus){
-    const twentyoneplus = req.query.twentyoneplus.toLowerCase() === 'true';
-  } else {
-    const twentyoneplus = null;
-  }
-  if (req.query.cost){
-    const cost = parseFloat(req.query.cost);
-  } else {
-    const cost = null;
+
+  let latitude = null;
+  let longitude = null;
+  let radius = null;
+  let datetime = null;
+  let dateOnly = null;
+  let twentyoneplus = null;
+  let cost = null;
+
+  if (req.query.location && req.query.radius) {
+    const locParts = req.query.location.split(',');   // [longitude, latitude]
+    longitude = parseFloat(locParts[0]);
+    latitude = parseFloat(locParts[1]);
+    radius = parseFloat(req.query.radius) * 1609.34;  // convert miles → meters
   }
 
-  if(!uid && !location && !datetime && !twentyoneplus){
-    res.locals.message = `No valid filters provided.`;
-        res.status(400).send({data:{success: false, events: undefined}});
-        return;
-  } else if (uid){ // this is all the user's rsvp'd events, it's separate from the other filters (takes priority)
-    db.manyOrNone( // get the event
-      'SELECT * FROM rsvps WHERE user_id = {id}', {id: eid}, rsvp => rsvp.event_id
-    ).then( event_ids => {
-        db.many(`SELECT * FROM events WHERE id IN ({id_list})`, {id_list: event_ids.join(', ')}).then(
-          events => {
-            res_events = [];
-            events.forEach(event => res_events.push({ 
-                'name': event.name, 
-                'location': {
-                  'latitude': event.location["geometry"]["coordinates"][1],
-                  'longitude': event.location["geometry"]["coordinates"][0]
-                },
-                'time': new Date(event.time).toISOString(), 
-                'duration': event.duration, 
-                'details': event.details, 
-                'description': event.description
-              }));
-            res.status(200).send({data:{success: true, events: res_events}});
-            return;
-          }
-        )
-      }
-    ).catch( _ => {
-        res.locals.message = `Error getting all events with an rsvp from user_id: ${uid}.`;
-        res.status(403).send({data:{success: false, events: undefined}});
-        return;
-      }
-    )
-  } else {
-    /* TODO: need to figure out what valid filter values are.
-        eg. 1mile, 5miles, 10miles, ... for location.
-            Values for date and time that give the user good filtering options.
-        We should decide whether these should be continuous or discreet values.
-    */
-    var query = `SELECT * FROM events WHERE 1=1`; // 1=1 is a dummy condition to make appending easier
-    if (location) {query = query.concat('AND ST_DWithin(location, ST_MakePoint($1, $2), $3)', longitude, latitude, radius);} // event is within radius miles of location
-    if (dateOnly) {query = query.concat("AND date_trunc('day', time) = '$1'", datetime.slice(0, 10));}  // event is on that date
-    else if (datetime) {query = query.concat("AND time <= '$1' AND time + duration >= '$2'", datetime, datetime);} // event is happening at that time
-    if (twentyoneplus !== null) {
-      if (twentyoneplus) {query = query.concat("AND twentyoneplus = true");} // event is 21+
-      else {query = query.concat("AND twentyoneplus = false");} // event is not 21+
-    } 
-    if (cost !== null) {query = query.concat("AND cost <= $1", cost);} // event is under the cost
-    db.manyOrNone( // get the event
-      query
-    ).then( events => {
-        res_events = [];
-        events.forEach(event => res_events.push({ 
-            'name': event.name, 
-            'location': {
-              'latitude': event.location["geometry"]["coordinates"][1],
-              'longitude': event.location["geometry"]["coordinates"][0]
-            },
-            'time': new Date(event.time).toISOString(), 
-            'duration': event.duration, 
-            'details': event.details, 
-            'description': event.description
-          }));
-        res.status(200).send({data:{success: true, events: res_events}});
-        return;
-      }
-    ).catch( _ => {
-        res.locals.message = `Error getting events with provided filters.`;
-        res.status(403).send({data:{success: false, events: undefined}});
-        return;
-      }
-    )
+  if (req.query.datetime && Date.parse(req.query.datetime)) {
+    datetime = new Date(req.query.datetime);
+    const seconds = datetime.getSeconds();
+    dateOnly = (seconds === 11);        // your “date-only” flag hack
+    datetime = datetime.toISOString();
   }
+
+  if (req.query.twentyoneplus) {
+    twentyoneplus = (req.query.twentyoneplus.toLowerCase() === 'true');
+  }
+
+  if (req.query.cost) {
+    cost = parseFloat(req.query.cost);
+  }
+
+  // ------------------------------------------------------------
+  // No filters provided → reject.
+  // ------------------------------------------------------------
+  if (!uid && !latitude && !datetime && twentyoneplus === null) {
+    res.locals.message = `No valid filters provided.`;
+    res.status(400).send({ data: { success: false, events: undefined } });
+    return;
+  }
+
+  // =====================================================================
+  // USER RSVP MODE (takes priority)
+  // =====================================================================
+  if (uid) {
+
+    try {
+      const rsvps = db.manyOrNone(
+        'SELECT event_id FROM rsvps WHERE user_id = $1',
+        [uid]
+      );
+
+      const ids = rsvps.map(r => r.event_id);
+
+      if (ids.length === 0) {
+        res.status(200).send({ data: { success: true, events: [] } });
+        return;
+      }
+
+      const events = db.many(
+        `SELECT * FROM events WHERE id = ANY($1::int[])`,
+        [ids]
+      );
+
+      const res_events = events.map(event => ({
+        name: event.name,
+        location: {
+          latitude: event.location.geometry.coordinates[1],
+          longitude: event.location.geometry.coordinates[0]
+        },
+        time: new Date(event.time).toISOString(),
+        duration: event.duration,
+        details: event.details,
+        description: event.description
+      }));
+
+      res.status(200).send({ data: { success: true, events: res_events } });
+      return;
+
+    } catch (e) {
+      res.locals.message = `Error getting RSVP events for user_id: ${uid}.`;
+      res.status(403).send({ data: { success: false, events: undefined } });
+      return;
+    }
+  }
+
+  // =====================================================================
+  // FILTER MODE
+  // =====================================================================
+
+  let sql = `
+    SELECT 
+      name,
+      ST_Y(location) AS latitude,
+      ST_X(location) AS longitude,
+      time,
+      duration,
+      details,
+      description
+    FROM events
+    WHERE 1=1
+  `;
+  const params = [];
+  let p = 1;
+
+  if (latitude !== null) {
+    sql += ` AND ST_DWithin(location, ST_MakePoint($${p++}, $${p++})::geography, $${p++})`;
+    params.push(longitude, latitude, radius);
+  }
+
+  if (dateOnly) {
+    sql += ` AND date_trunc('day', time) = $${p++}`;
+    params.push(datetime.slice(0, 10));
+  } else if (datetime) {
+    sql += ` AND time <= $${p++} AND (time + duration * interval '1 second') >= $${p++}`;
+    params.push(datetime, datetime);
+  }
+
+  if (twentyoneplus !== null) {
+    sql += ` AND twentyoneplus = $${p++}`;
+    params.push(twentyoneplus);
+  }
+
+  if (cost !== null) {
+    sql += ` AND cost <= $${p++}`;
+    params.push(cost);
+  }
+
+  try {
+    const events = db.manyOrNone(sql, params);
+    console.log(events)
+
+    const res_events = events.map(event => ({
+      name: event.name,
+      location: {
+        latitude: event.latitude,
+        longitude: event.longitude
+      },
+      time: new Date(event.time).toISOString(),
+      duration: event.duration,
+      details: event.details,
+      description: event.description
+    }));
+
+    res.status(200).send({ data: { success: true, events: res_events } });
+    return;
+
+  } catch (e) {
+    res.locals.message = `Error getting events with provided filters.`;
+    console.log(e);
+    res.status(403).send({ data: { success: false, events: undefined } });
+    return;
+  }
+
 });
+
 
 // User creates event, returns the created event
 app.post('/createEvent', (req, res) => {
