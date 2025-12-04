@@ -14,3 +14,7 @@ func UIColorFromRGB(_ rgbValue: UInt) -> UIColor {
         alpha: 1.0
     )
 }
+
+func isValidPassword(_ password: String) -> Bool {
+    return password.count >= 8 && password.rangeOfCharacter(from: CharacterSet(charactersIn: "!@#$%^&*")) != nil
+}
