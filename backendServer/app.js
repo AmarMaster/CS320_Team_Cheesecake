@@ -544,7 +544,7 @@ app.post('/changePassword', (req, res) => {
   }
   */
 
-  userName = req['data']['name'];
+  userName = req['data']['username'];
   userPass = req['data']['password'];
   newPass = req['data']['newPassword'];
   const gotPass = db.one(
@@ -583,7 +583,7 @@ app.post('/deleteAccount', (req, res) => {
   }
   */
 
-  userName = req['data']['name'];
+  userName = req['data']['username'];
   const gotPass = db.none(
     'Delete * FROM users WHERE username = {username}', {username: userName}
   ).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
