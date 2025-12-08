@@ -521,6 +521,77 @@ app.post('/userRSVP', (req, res) => {
   res.send("UMapper Web API.");
 });
 
+
+// User changes password
+app.post('/changePassword', (req, res) => {
+  /*
+  req = {
+    data: {
+      username = String
+      password = String
+      newPassword = String
+    }
+    auth: {
+      jwt: String
+    }
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      message: String
+    }
+  }
+  */
+
+  userName = req['data']['name'];
+  userPass = req['data']['password'];
+  newPass = req['data']['newPassword'];
+  const gotPass = db.one(
+    'SELECT * FROM users WHERE username = {username}', {username: userName}, user => user.password   
+  )
+  
+  if (gotPass === userPass){
+    db.none('UPDATE users SET password = {newPassword} WHERE username = {username}', {newPassword: newPass, username: userName}).catch(
+      _ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;}
+    );
+    res.status(200).send({data:{success: true, message: "Password updated."}}); 
+    return;
+  } else {
+    res.status(403).send({data:{success: false, message: "Incorrect password."}});
+    return;
+  }
+});
+
+// User deletes account
+app.post('/deleteAccount', (req, res) => {
+  /*
+  req = {
+    data: {
+      username = String
+    }
+    auth: {
+      jwt: String
+    }
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      message: String
+    }
+  }
+  */
+
+  userName = req['data']['name'];
+  const gotPass = db.none(
+    'Delete * FROM users WHERE username = {username}', {username: userName}
+  ).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
+
+  res.status(200).send({data:{success: true, message: "Account deleted."}}); 
+  return;
+});
+
 // API Routes
 app.use('/api/events', eventsRouter);
 app.use('/', indexRouter);
