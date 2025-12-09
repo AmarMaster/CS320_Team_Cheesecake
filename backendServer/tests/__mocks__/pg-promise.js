@@ -7,6 +7,11 @@ const mockDb = {
   none: jest.fn()
 };
 
+mockDb.none = jest.fn((...args) => {
+  console.log('MOCK DB .none CALLED WITH:', args);
+  return Promise.resolve();
+});
+
 const pgp = () => () => mockDb;
 
 pgp.__mockDb = mockDb;
