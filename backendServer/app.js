@@ -49,51 +49,28 @@ app.get('/', (req, res) => {
 
 // Recieve login form data in json format
 // Process this data, send success if successful
-app.post('/login', (req, res) => {
-  // req = {
-  //         data: {
-  //           userID: String,
-  //           password: String,
-  //         }
-  //       }
-
-  // res = {
-  //   data: {
-  //     success: Boolean,
-  //     message: String,
-  //     jwt: String,
-  //   }
-  // }
-
-  success = true;
-  userID = req['data']['userID'];
-  userPass = req['data']['password'];
-  db.one( // get the encrypted password to compare to validate user
-      'SELECT * FROM users WHERE userID = {id}', {id: userID}, user => user.password
-    ) 
-    .then(
-      pass => { // user is found
-        if (userPass !== pass){ // password is incorrect
-          res.locals.message = `Incorrect Password for user with ID: ${userID}`
-          success = false;
-        }
-        success = true ? userPass == pass : false;
-      }, 
-      _ => { // no user is found
-        res.locals.message = `No user found with ID: ${userID}`; 
-        success = false
-      }
-    );
-  
-  if (!success){
-    res.status(401).send({data:{success: false, message: "Incorrect Username or Password.", jwt: ''}});
-    return;
+app.post('/login', async (req, res) => {
+  // Defensive: check for req.body and req.body.data
+  if (!req.body || !req.body.data) {
+    return res.status(401).send({ data: { success: false, message: "Missing login data.", jwt: '' } });
   }
-
-  // Generate jwt auth token
-  const token = jwt.sign({ userId: req['data']['userID'] }, "secretKey", { expiresIn: "2h" });
-  
-  res.status(200).send({data:{success: true, message: "Logged In.", jwt: token}});
+  const { userID, password } = req.body.data;
+  if (!userID || !password) {
+    return res.status(401).send({ data: { success: false, message: "Missing userID or password.", jwt: '' } });
+  }
+  try {
+    // get the encrypted password to compare to validate user
+    const user = await db.one('SELECT * FROM users WHERE userID = {id}', { id: userID });
+    if (!user || !user.password || user.password !== password) {
+      return res.status(401).send({ data: { success: false, message: "Incorrect Username or Password.", jwt: '' } });
+    }
+    // Generate jwt auth token
+    const token = jwt.sign({ userId: userID }, "secretKey", { expiresIn: "2h" });
+    return res.status(200).send({ data: { success: true, message: "Logged In.", jwt: token } });
+  } catch (err) {
+    // user not found or db error
+    return res.status(401).send({ data: { success: false, message: "Incorrect Username or Password.", jwt: '' } });
+  }
 });
 
 // create an account, adds data to db and generates userID and jwt token if successful
