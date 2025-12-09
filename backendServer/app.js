@@ -10,15 +10,24 @@ const jwt = require("jsonwebtoken");
 // PostgreSQL integration
 const pgp = require('pg-promise')(/* options */)
 //const db = require('./db.js');
- const db = pgp('postgres://zacharya:admin@localhost:5432/eventtracker-db');
+const db = pgp('postgres://zacharya:admin@localhost:5432/eventtracker-db');
  
+const getIDfromUsername = (username) => {
+  return db.one(
+    'SELECT * FROM users WHERE username = {username}', {username: username}, user => user.id   
+  )
+}
+const getUsernamefromID = (id) => {
+  return db.one(
+    'SELECT * FROM users WHERE id = {id}', {id: id}, user => user.username   
+  )
+}
 
 // Import routes
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var eventsRouter = require('./routes/events');
 
-const port = 3000;
 var app = express();
 
 // view engine setup
@@ -156,36 +165,38 @@ app.get('/getEventData', (req, res) => {
       }
   */
   eid = req.query.eventID
-  if (eid){
-    db.one( // get the event
-      'SELECT * FROM events WHERE id = {id}', {id: eid}
-    ).then( event => {
-        res.status(200).send(
-          {data:
-            {success: true, event: 
-              { 
-                'name': event.name, 
-                'location': {
-                  'latitude': event.location["geometry"]["coordinates"][1],
-                  'longitude': event.location["geometry"]["coordinates"][0]
-                },
-                'time': new Date(event.time).toISOString(),
-                'duration': event.duration,
-                'details': event.details,
-                'description': event.description
-              }
+  if (!eid){
+    res.status(400).send({data:{success: false, event: undefined}}); // do nothing if no eventID provided
+    return;
+  }
+  db.one( // get the event
+    'SELECT * FROM events WHERE id = {id}', {id: eid}
+  ).then( event => {
+      res.status(200).send(
+        {data:
+          {success: true, event: 
+            { 
+              'name': event.name, 
+              'location': {
+                'latitude': event.location["geometry"]["coordinates"][1],
+                'longitude': event.location["geometry"]["coordinates"][0]
+              },
+              'time': new Date(event.time).toISOString(),
+              'duration': event.duration,
+              'details': event.details,
+              'description': event.description
             }
           }
-        );
-        return;
-      }
-    ).catch( _ => {
-        res.locals.message = `No event found with id: ${eid}.`;
-        res.status(403).send({data:{success: false, event: undefined}});
-        return;
-      }
-    )
-  }
+        }
+      );
+      return;
+    }
+  ).catch( _ => {
+      res.locals.message = `No event found with id: ${eid}.`;
+      res.status(403).send({data:{success: false, event: undefined}});
+      return;
+    }
+  );
 });
 
 // Frontend requests data for many events cooresponding to certain filters
@@ -269,110 +280,105 @@ app.get('/getEventList', (req, res) => {
       const rsvps = db.manyOrNone(
         'SELECT event_id FROM rsvps WHERE user_id = $1',
         [uid]
-      );
-
-      const ids = rsvps.map(r => r.event_id);
-
-      if (ids.length === 0) {
-        res.status(200).send({ data: { success: true, events: [] } });
-        return;
-      }
-
-      const events = db.many(
-        `SELECT * FROM events WHERE id = ANY($1::int[])`,
-        [ids]
-      );
-
-      const res_events = events.map(event => ({
-        name: event.name,
-        location: {
-          latitude: event.location.geometry.coordinates[1],
-          longitude: event.location.geometry.coordinates[0]
-        },
-        time: new Date(event.time).toISOString(),
-        duration: event.duration,
-        details: event.details,
-        description: event.description
-      }));
-
-      res.status(200).send({ data: { success: true, events: res_events } });
-      return;
-
+      ).then(rsvps => {
+        const ids = rsvps.map(r => r.event_id);
+        if (ids.length === 0) {
+          res.status(200).send({ data: { success: true, events: [] } });
+          return;
+        }
+        db.many(
+          `SELECT * FROM events WHERE id = ANY($1::int[])`,
+          [ids]
+        ).then(events => {
+          const res_events = events.map(event => ({
+            name: event.name,
+            location: {
+              latitude: event.location.geometry.coordinates[1],
+              longitude: event.location.geometry.coordinates[0]
+            },
+            time: new Date(event.time).toISOString(),
+            duration: event.duration,
+            details: event.details,
+            description: event.description
+          }));
+          res.status(200).send({ data: { success: true, events: res_events } });
+          return;
+        });
+      });
     } catch (e) {
       res.locals.message = `Error getting RSVP events for user_id: ${uid}.`;
       res.status(403).send({ data: { success: false, events: undefined } });
       return;
     }
-  }
+  } else {
 
   // =====================================================================
   // FILTER MODE
   // =====================================================================
 
-  let sql = `
-    SELECT 
-      name,
-      ST_Y(location) AS latitude,
-      ST_X(location) AS longitude,
-      time,
-      duration,
-      details,
-      description
-    FROM events
-    WHERE 1=1
-  `;
-  const params = [];
-  let p = 1;
+    let sql = `
+      SELECT 
+        name,
+        ST_Y(location) AS latitude,
+        ST_X(location) AS longitude,
+        time,
+        duration,
+        details,
+        description
+      FROM events
+      WHERE 1=1
+    `;
+    const params = [];
+    let p = 1;
 
-  if (latitude !== null) {
-    sql += ` AND ST_DWithin(location, ST_MakePoint($${p++}, $${p++})::geography, $${p++})`;
-    params.push(longitude, latitude, radius);
+    if (latitude !== null) {
+      sql += ` AND ST_DWithin(location, ST_MakePoint($${p++}, $${p++})::geography, $${p++})`;
+      params.push(longitude, latitude, radius);
+    }
+
+    if (dateOnly) {
+      sql += ` AND date_trunc('day', time) = $${p++}`;
+      params.push(datetime.slice(0, 10));
+    } else if (datetime) {
+      sql += ` AND time <= $${p++} AND (time + duration * interval '1 second') >= $${p++}`;
+      params.push(datetime, datetime);
+    }
+
+    if (twentyoneplus !== null) {
+      sql += ` AND twentyoneplus = $${p++}`;
+      params.push(twentyoneplus);
+    }
+
+    if (cost !== null) {
+      sql += ` AND cost <= $${p++}`;
+      params.push(cost);
+    }
+
+    try {
+      const res_events = db.manyOrNone(sql, params).then(events => {
+        return events.map(event => ({
+          name: event.name,
+          location: {
+            latitude: event.latitude,
+            longitude: event.longitude
+          },
+          time: new Date(event.time).toISOString(),
+          duration: event.duration,
+          details: event.details,
+          description: event.description
+        }));
+      }).then(res_events => {
+        res.status(200).send({ data: { success: true, events: res_events } });
+        return;
+      });
+    } catch (e) {
+      res.locals.message = `Error getting events with provided filters.`;
+      console.log(e);
+      res.status(403).send({ data: { success: false, events: undefined } });
+      return;
+    }
+
   }
-
-  if (dateOnly) {
-    sql += ` AND date_trunc('day', time) = $${p++}`;
-    params.push(datetime.slice(0, 10));
-  } else if (datetime) {
-    sql += ` AND time <= $${p++} AND (time + duration * interval '1 second') >= $${p++}`;
-    params.push(datetime, datetime);
-  }
-
-  if (twentyoneplus !== null) {
-    sql += ` AND twentyoneplus = $${p++}`;
-    params.push(twentyoneplus);
-  }
-
-  if (cost !== null) {
-    sql += ` AND cost <= $${p++}`;
-    params.push(cost);
-  }
-
-  try {
-    const events = db.manyOrNone(sql, params);
-    console.log(events)
-
-    const res_events = events.map(event => ({
-      name: event.name,
-      location: {
-        latitude: event.latitude,
-        longitude: event.longitude
-      },
-      time: new Date(event.time).toISOString(),
-      duration: event.duration,
-      details: event.details,
-      description: event.description
-    }));
-
-    res.status(200).send({ data: { success: true, events: res_events } });
-    return;
-
-  } catch (e) {
-    res.locals.message = `Error getting events with provided filters.`;
-    console.log(e);
-    res.status(403).send({ data: { success: false, events: undefined } });
-    return;
-  }
-
 });
 
 
@@ -592,6 +598,192 @@ app.post('/deleteAccount', (req, res) => {
   return;
 });
 
+
+// User adds a friend
+app.post('/addFriend', (req, res) => {
+  /*
+  req = {
+    data: {
+      username = String
+      friendUsername = String
+    }
+    auth: {
+      jwt: String
+    }
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      message: String
+    }
+  }
+  */
+
+  userName = req['data']['username'];
+  friendUsername = req['data']['friendUsername'];
+  userId = getIDfromUsername(userName).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
+  friendId = getIDfromUsername(friendUsername).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
+  const gotPass = db.none(
+    'INSERT INTO friendships (user_id_1, user_id_2, status, created_at) VALUES ({user_id_1}, {user_id_2}, {status}, {created_at}); ', {user_id_1: userId, user_id_2: friendId, status: 'accepted', created_at: new Date()})
+  .catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
+
+  res.status(200).send({data:{success: true, message: "Friend added."}}); 
+  return;
+});
+
+// User removes a friend
+app.post('/removeFriend', (req, res) => {
+  /*
+  req = {
+    data: {
+      username = String,
+      friendUsername = String
+    }
+    auth: {
+      jwt: String
+    }
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      message: String
+    }
+  }
+  */
+
+  userName = req['data']['username'];
+  friendUsername = req['data']['friendUsername'];
+  const gotPass = db.none(
+    'DELETE FROM friendships WHERE (user_id_1 = {user_id_1} AND user_id_2 = {user_id_2}) OR (user_id_1 = {user_id_2} AND user_id_2 = {user_id_1}); ', {user_id_1: userName, user_id_2: friendUsername})
+  .catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
+
+  res.status(200).send({data:{success: true, message: "Friend removed."}}); 
+  return;
+});
+
+// User gets the list of their friends
+app.post('/getAllFriends', (req, res) => {
+  /*
+  req = {
+    data: {
+      username = String
+    }
+    auth: {
+      jwt: String
+    }
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      message: String,
+      friends: [String]
+    }
+  }
+  */
+
+  userName = req['data']['username'];
+  userID = getIDfromUsername(userName).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
+  const gotPass = db.manyOrNone(
+    'SELECT * FROM friendships WHERE user_id_1 = {user_id_1} OR user_id_2 = {user_id_1}; ', {user_id_1: userID})
+  .catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
+
+  friendList = gotPass.map( f => {
+    if (f.user_id_1 == userID){
+      return f.user_id_2;
+    } else {
+      return f.user_id_1;
+    }
+  }).map(id => getUsernamefromID(id));
+  
+  res.status(200).send({data:{success: true, message: "Friends retrieved.", friends: friendList}}); 
+  return;
+});
+
+// User gets all events a friend has RSVP'd to
+app.post('/getFriendEvents', (req, res) => {
+  /*
+  req = {
+    data: {
+      username = String
+      friendUsername = String
+    }
+    auth: {
+      jwt: String
+    }
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      events: [Event]
+    }
+  }
+  
+  Event = {
+        name: String,
+        location: {
+            latitude: Float,
+            longitude: Float
+          },
+        time: "YYYY-MM-DDTHH:MM:SS",
+        duration: Integer,
+        details: String,
+        description: String
+      }
+  */
+
+  userName = req['data']['username'];
+  friendUsername = req['data']['friendUsername'];
+  userID = getIDfromUsername(userName).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
+  friendID = getIDfromUsername(friendUsername).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
+  const friendId = db.one(
+    'SELECT FROM friendships WHERE (user_id_1 = {user_id_1} AND user_id_2 = {user_id_2}) OR (user_id_1 = {user_id_2} AND user_id_2 = {user_id_1}); ', {user_id_1: userName, user_id_2: friendUsername})
+  .catch(_ => {res.status(403).send({data:{success: false, message: "Friendship not found."}}); return;})
+  
+  try {
+    const rsvps = db.manyOrNone(
+      'SELECT event_id FROM rsvps WHERE user_id = $1',
+      [userID]
+    );
+
+    const ids = rsvps.map(r => r.event_id);
+
+    if (ids.length === 0) {
+      res.status(200).send({ data: { success: true, events: [] } });
+      return;
+    }
+
+    const events = db.many(
+      `SELECT * FROM events WHERE id = ANY($1::int[])`,
+      [ids]
+    );
+
+    const res_events = events.map(event => ({
+      name: event.name,
+      location: {
+        latitude: event.location.geometry.coordinates[1],
+        longitude: event.location.geometry.coordinates[0]
+      },
+      time: new Date(event.time).toISOString(),
+      duration: event.duration,
+      details: event.details,
+      description: event.description
+    }));
+
+    res.status(200).send({ data: { success: true, events: res_events } });
+    return;
+
+  } catch (e) {
+    res.locals.message = `Error getting RSVP events for user_id: ${uid}.`;
+    res.status(403).send({ data: { success: false, events: undefined } });
+    return;
+  }
+});
+
+
 // API Routes
 app.use('/api/events', eventsRouter);
 app.use('/', indexRouter);
@@ -612,9 +804,5 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
-
-app.listen(port, () => {
-  console.log(`EventMapper backend listening on port ${port}`)
-})
 
 module.exports = app;

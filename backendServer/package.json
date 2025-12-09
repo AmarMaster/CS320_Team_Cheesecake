@@ -3,17 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node app.js"
+    "start": "node server.js",
+    "test": "jest"
   },
   "dependencies": {
+    "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "express": "^4.21.2",
     "http-errors": "~1.6.3",
+    "jest": "^30.2.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
     "pg-promise": "^12.2.0",
-    "pug": "^3.0.3"
+    "pug": "^3.0.3",
+    "supertest": "^7.1.4"
   }
 }
