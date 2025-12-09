@@ -59,13 +59,11 @@ struct EventsMap: UIViewRepresentable {
         // Update annotations
         uiView.removeAnnotations(uiView.annotations)
 
-        let annotations = events.compactMap { event -> MKPointAnnotation? in
-            let coord = event.coordinate
-            
+        let annotations = events.map { event -> MKPointAnnotation in
             let annotation = MKPointAnnotation()
-            annotation.coordinate = coord
+            annotation.coordinate = event.coordinate
             annotation.title = event.name
-            annotation.subtitle = event.id.map(String.init)
+            annotation.subtitle = event.id != nil ? String(event.id!) : nil
             
             return annotation
         }
