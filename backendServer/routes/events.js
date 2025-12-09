@@ -360,4 +360,66 @@ router.delete('/:id', verifyToken, async (req, res) => {
   }
 });
 
+// --- Slider Operations: Favorite, RSVP, Hosted ---
+
+// Toggle Favorite
+router.post('/:id/fav', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.userId;
+  if (isNaN(id)) {
+    return res.status(400).json({ success: false, message: 'Invalid event ID' });
+  }
+  // Simulate DB lookup for event
+  try {
+    const event = await db.oneOrNone('SELECT id FROM events WHERE id = $1', [id]);
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+    // Simulate toggle logic (replace with real DB logic)
+    // e.g., check if already favorited, then remove; else add
+    // For now, just return success
+    return res.status(200).json({ success: true, message: 'Favorite toggled', data: { eventId: id, userId } });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Toggle RSVP
+router.post('/:id/rsvp', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.userId;
+  if (isNaN(id)) {
+    return res.status(400).json({ success: false, message: 'Invalid event ID' });
+  }
+  try {
+    const event = await db.oneOrNone('SELECT id FROM events WHERE id = $1', [id]);
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+    // Simulate toggle logic
+    return res.status(200).json({ success: true, message: 'RSVP toggled', data: { eventId: id, userId } });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Toggle Hosted (for demo, just returns success)
+router.post('/:id/hosted', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.userId;
+  if (isNaN(id)) {
+    return res.status(400).json({ success: false, message: 'Invalid event ID' });
+  }
+  try {
+    const event = await db.oneOrNone('SELECT id FROM events WHERE id = $1', [id]);
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+    // Simulate toggle logic
+    return res.status(200).json({ success: true, message: 'Hosted toggled', data: { eventId: id, userId } });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 module.exports = router;

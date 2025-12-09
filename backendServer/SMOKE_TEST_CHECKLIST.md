@@ -72,4 +72,4 @@
 ## Notes
 - For each test, record status code and key response fields (error message, data, etc.).
 - If any test fails (unexpected 5xx, crash, or unclear error), log the bug and link to ticket.
-- Checklist should be re-run before each demo.
+- Checklist should be re-run before demo.

@@ -215,3 +215,108 @@ describe('Event Endpoints (mocked DB)', () => {
     });
   });
 });
+
+  // SLIDER OPERATIONS: Fav/RSVP/Hosted
+  describe('Slider Operations', () => {
+    describe('POST /api/events/:id/fav', () => {
+      test('Happy path: valid favorite toggle', async () => {
+        mockDb.oneOrNone.mockResolvedValue({ id: 1 });
+        const res = await request(app)
+          .post('/api/events/1/fav')
+          .set('Authorization', `Bearer ${TEST_TOKEN}`);
+        expect(res.statusCode).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.eventId).toBe('1');
+      });
+      test('Invalid event ID format', async () => {
+        const res = await request(app)
+          .post('/api/events/abc/fav')
+          .set('Authorization', `Bearer ${TEST_TOKEN}`);
+        expect(res.statusCode).toBe(400);
+        expect(res.body.success).toBe(false);
+      });
+      test('Non-existent event ID', async () => {
+        mockDb.oneOrNone.mockResolvedValue(null);
+        const res = await request(app)
+          .post('/api/events/9999/fav')
+          .set('Authorization', `Bearer ${TEST_TOKEN}`);
+        expect(res.statusCode).toBe(404);
+        expect(res.body.success).toBe(false);
+      });
+      test('Invalid auth token', async () => {
+        const res = await request(app)
+          .post('/api/events/1/fav')
+          .set('Authorization', 'Bearer invalidtoken');
+        expect([401, 403]).toContain(res.statusCode);
+        expect(res.body.success).toBe(false);
+      });
+    });
+
+    describe('POST /api/events/:id/rsvp', () => {
+      test('Happy path: valid RSVP toggle', async () => {
+        mockDb.oneOrNone.mockResolvedValue({ id: 1 });
+        const res = await request(app)
+          .post('/api/events/1/rsvp')
+          .set('Authorization', `Bearer ${TEST_TOKEN}`);
+        expect(res.statusCode).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.eventId).toBe('1');
+      });
+      test('Invalid event ID format', async () => {
+        const res = await request(app)
+          .post('/api/events/abc/rsvp')
+          .set('Authorization', `Bearer ${TEST_TOKEN}`);
+        expect(res.statusCode).toBe(400);
+        expect(res.body.success).toBe(false);
+      });
+      test('Non-existent event ID', async () => {
+        mockDb.oneOrNone.mockResolvedValue(null);
+        const res = await request(app)
+          .post('/api/events/9999/rsvp')
+          .set('Authorization', `Bearer ${TEST_TOKEN}`);
+        expect(res.statusCode).toBe(404);
+        expect(res.body.success).toBe(false);
+      });
+      test('Invalid auth token', async () => {
+        const res = await request(app)
+          .post('/api/events/1/rsvp')
+          .set('Authorization', 'Bearer invalidtoken');
+        expect([401, 403]).toContain(res.statusCode);
+        expect(res.body.success).toBe(false);
+      });
+    });
+
+    describe('POST /api/events/:id/hosted', () => {
+      test('Happy path: valid hosted toggle', async () => {
+        mockDb.oneOrNone.mockResolvedValue({ id: 1 });
+        const res = await request(app)
+          .post('/api/events/1/hosted')
+          .set('Authorization', `Bearer ${TEST_TOKEN}`);
+        expect(res.statusCode).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.eventId).toBe('1');
+      });
+      test('Invalid event ID format', async () => {
+        const res = await request(app)
+          .post('/api/events/abc/hosted')
+          .set('Authorization', `Bearer ${TEST_TOKEN}`);
+        expect(res.statusCode).toBe(400);
+        expect(res.body.success).toBe(false);
+      });
+      test('Non-existent event ID', async () => {
+        mockDb.oneOrNone.mockResolvedValue(null);
+        const res = await request(app)
+          .post('/api/events/9999/hosted')
+          .set('Authorization', `Bearer ${TEST_TOKEN}`);
+        expect(res.statusCode).toBe(404);
+        expect(res.body.success).toBe(false);
+      });
+      test('Invalid auth token', async () => {
+        const res = await request(app)
+          .post('/api/events/1/hosted')
+          .set('Authorization', 'Bearer invalidtoken');
+        expect([401, 403]).toContain(res.statusCode);
+        expect(res.body.success).toBe(false);
+      });
+    });
+  });
