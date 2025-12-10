@@ -14,6 +14,7 @@ struct ProfileView: View {
     
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var profileImage: UIImage? = nil
+    @State private var showSettingsSheet = false
     
     @State private var events: [EventData] = [
         EventData(
@@ -277,6 +278,18 @@ struct ProfileView: View {
         }
         .foregroundColor(.white)
         .font(.subheadline)
+    }
+    
+    private func handleLogout() {
+        // Handle logout logic
+    }
+    
+    private func handleChangePassword(_ newPassword: String) {
+        // Handle change password logic
+    }
+    
+    private func handleDeleteAccount() {
+        // Handle delete account logic
     }
 }
 
