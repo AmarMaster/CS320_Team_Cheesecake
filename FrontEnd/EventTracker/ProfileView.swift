@@ -44,7 +44,9 @@ struct ProfileView: View {
                             Spacer()
                             
                             // settings button
-                            Button(action: {}) {
+                            Button(action: {
+                                showSettingsSheet = true
+                            }) {
                                 Image(systemName: "gearshape.fill")
                                     .foregroundColor(.white)
                                     .font(.system(size: 30))
@@ -52,6 +54,13 @@ struct ProfileView: View {
                         }
                         .padding(.horizontal)
                         .padding(.top, 20)
+                        .sheet(isPresented: $showSettingsSheet) {
+                            SettingsView(
+                                onLogout: handleLogout,
+                                onChangePassword: handleChangePassword,
+                                onDeleteAccount: handleDeleteAccount
+                            )
+                        }
                         
                         PhotosPicker(selection: $selectedItem, matching: .images) {
                             if let profileImage {

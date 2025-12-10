@@ -52,95 +52,65 @@ app.get('/', (req, res) => {
 
 // Recieve login form data in json format
 // Process this data, send success if successful
-app.post('/login', (req, res) => {
-  // Expecting: { data: { username: String, password: String } }
-  const data = req.data || {};
-  const username = data.username;
-  const userPass = data.password;
-
-  if (!username || !userPass) {
-    res.status(400).send({ data: { success: false, message: "Missing credentials.", jwt: '' } });
-    return;
+app.post('/login', async (req, res) => {
+  // Defensive: check for req.body and req.body.data
+  if (!req.body || !req.body.data) {
+    return res.status(401).send({ data: { success: false, message: "Missing login data.", jwt: '' } });
   }
-
-  // Convert username -> internal id, then fetch stored password by id
-  getIDfromUsername(username)
-    .then(id => {
-      return db.one('SELECT * FROM users WHERE id = {id}', { id: id }, user => user.password)
-        .then(storedPass => ({ id, storedPass }));
-    })
-    .then(({ id, storedPass }) => {
-      if (userPass !== storedPass) {
-        res.status(401).send({ data: { success: false, message: "Incorrect Username or Password.", jwt: '' } });
-        return;
-      }
-      const token = jwt.sign({ userId: id }, "secretKey", { expiresIn: "2h" });
-      res.status(200).send({ data: { success: true, message: "Logged In.", jwt: token } });
-    })
-    .catch(_ => {
-      // either username->id failed or password lookup failed
-      res.status(401).send({ data: { success: false, message: "Incorrect Username or Password.", jwt: '' } });
-    });
+  const { userID, password } = req.body.data;
+  if (!userID || !password) {
+    return res.status(401).send({ data: { success: false, message: "Missing userID or password.", jwt: '' } });
+  }
+  try {
+    // get the encrypted password to compare to validate user
+    const user = await db.one('SELECT * FROM users WHERE userID = {id}', { id: userID });
+    if (!user || !user.password || user.password !== password) {
+      return res.status(401).send({ data: { success: false, message: "Incorrect Username or Password.", jwt: '' } });
+    }
+    // Generate jwt auth token
+    const token = jwt.sign({ userId: userID }, "secretKey", { expiresIn: "2h" });
+    return res.status(200).send({ data: { success: true, message: "Logged In.", jwt: token } });
+  } catch (err) {
+    // user not found or db error
+    return res.status(401).send({ data: { success: false, message: "Incorrect Username or Password.", jwt: '' } });
+  }
 });
 
 // create an account, adds data to db and generates userID and jwt token if successful
-app.post('/createAccount', (req, res) => {
-  // req = {
-  //         data: {
-  //           name: String,
-  //           password: String,
-  //           email: String,
-  //         }
-  //       }
-
-  // res = {
-  //   data: {
-  //     success: Boolean,
-  //     message: String,
-  //     jwt: String,
-  //   }
-  // }
-
-  const userName = req.data && req.data.name;
-  const userPass = req.data && req.data.password;
-  const userEmail = req.data && req.data.email;
-
-  db.many('SELECT * FROM users WHERE username = {name}', { name: userName })
-    .then(
-      pass => { // user is found (bad)
-        res.locals.message = `Username already taken.`;
-        res.status(403).send({ data: { success: false, message: "Username already taken.", userID: '', jwt: '' } });
-        return;
-      },
-      _ => { // no user is found (good)
-        // password restrictions: minimum length 8 and must contain at least one number
-        const isValidPassword = (p) => {
-          if (!p || typeof p !== 'string') return false;
-          if (p.length < 8) return false;
-          if (!/\d/.test(p)) return false; // must contain a digit
-          return true;
-        };
-
-        if (!isValidPassword(userPass)) {
-          res.status(400).send({ data: { success: false, message: "Password must be at least 8 characters and contain at least one number.", userID: '', jwt: '' } });
-          return;
-        }
-
-        // add user to db
-        db.none('INSERT INTO users (username, password, email) VALUES ({name}, {pass}, {email}); ', { name: userName, pass: userPass, email: userEmail })
-          .then(() => {
-            // lookup new user's internal id and sign JWT
-            return getIDfromUsername(userName);
-          })
-          .then(id => {
-            const token = jwt.sign({ userId: id }, "secretKey", { expiresIn: "2h" });
-            res.status(200).send({ data: { success: true, message: "Account Created.", jwt: token } });
-          })
-          .catch(_ => {
-            res.status(500).send({ data: { success: false, message: "Internal server error." } });
-          });
-      }
-    );
+app.post('/createAccount', async (req, res) => {
+  // Defensive: check for req.body and req.body.data
+  if (!req.body || !req.body.data) {
+    return res.status(400).send({ data: { success: false, message: "Missing registration data.", jwt: '' } });
+  }
+  const { name, password, email } = req.body.data;
+  if (!name || !password || !email) {
+    return res.status(400).send({ data: { success: false, message: "Missing name, password, or email.", jwt: '' } });
+  }
+  // Simple email format validation
+  const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).send({ data: { success: false, message: "Invalid email format.", jwt: '' } });
+  }
+  // Large input check (arbitrary: >100 chars for name/email)
+  if (name.length > 100 || email.length > 100) {
+    return res.status(400).send({ data: { success: false, message: "Name or email too long.", jwt: '' } });
+  }
+  try {
+    // Check if user/email already exists
+    const existing = await db.many('SELECT * FROM users WHERE username = {name} OR email = {email}', { name, email });
+    if (existing && existing.length > 0) {
+      return res.status(409).send({ data: { success: false, message: "Username or email already taken.", jwt: '' } });
+    }
+    // Add user to db
+    await db.none('INSERT INTO Users (name, password, email) VALUES ({name}, {pass}, {email});', { name, pass: password, email });
+    // Generate jwt auth token
+    const token = jwt.sign({ userId: name }, "secretKey", { expiresIn: "2h" });
+    return res.status(201).send({ data: { success: true, message: "Account Created.", jwt: token } });
+  } catch (err) {
+    console.error('Register error:', err);
+    // DB error or other error
+    return res.status(500).send({ data: { success: false, message: "Failed to create account.", jwt: '' } });
+  }
 });
 
 // Frontend requests data for a single event
@@ -170,7 +140,7 @@ app.get('/getEventData', (req, res) => {
         description: String
       }
   */
-  eid = req.query.eventID
+  const eid = req.query.eventID
   if (!eid){
     res.status(400).send({data:{success: false, event: undefined}}); // do nothing if no eventID provided
     return;
@@ -283,11 +253,11 @@ app.get('/getEventList', (req, res) => {
   if (uid) {
 
     try {
-      const rsvps = db.manyOrNone(
+      db.manyOrNone(
         'SELECT event_id FROM rsvps WHERE user_id = $1',
         [uid]
-      ).then(rsvps => {
-        const ids = rsvps.map(r => r.event_id);
+      ).then(ids => {
+        console.log("RSVP event IDs:", ids);
         if (ids.length === 0) {
           res.status(200).send({ data: { success: true, events: [] } });
           return;
@@ -361,7 +331,7 @@ app.get('/getEventList', (req, res) => {
     }
 
     try {
-      const res_events = db.manyOrNone(sql, params).then(events => {
+      db.manyOrNone(sql, params).then(events => {
         return events.map(event => ({
           name: event.name,
           location: {
@@ -393,8 +363,8 @@ app.post('/createEvent', (req, res) => {
   /*
   req = {
     data: {
-      userID = String
-      event = Event
+      userID: String
+      event: Event
     }
     auth: {
       jwt: String
@@ -450,9 +420,9 @@ app.post('/changeEvent', (req, res) => {
   /*
   req = {
     data: {
-      userID = String
-      eventID = String
-      event = Event
+      userID: String
+      eventID: String
+      event: Event
     }
     auth: {
       jwt: String
@@ -556,23 +526,19 @@ app.post('/changePassword', (req, res) => {
   }
   */
 
-  userName = req['data']['username'];
-  userPass = req['data']['password'];
-  newPass = req['data']['newPassword'];
-  const gotPass = db.one(
+  const userName = req['data']['username'];
+  const userPass = req['data']['password'];
+  const newPass = req['data']['newPassword'];
+  db.one(
     'SELECT * FROM users WHERE username = {username}', {username: userName}, user => user.password   
-  )
-  
-  if (gotPass === userPass){
-    db.none('UPDATE users SET password = {newPassword} WHERE username = {username}', {newPassword: newPass, username: userName}).catch(
-      _ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;}
-    );
-    res.status(200).send({data:{success: true, message: "Password updated."}}); 
-    return;
-  } else {
-    res.status(403).send({data:{success: false, message: "Incorrect password."}});
-    return;
-  }
+  ).then( gotPass => {
+    if (gotPass === userPass){
+      db.none('UPDATE users SET password = {newPassword} WHERE username = {username}', {newPassword: newPass, username: userName})
+      .then( _ => res.status(200).send({data:{success: true, message: "Password updated."}}));
+    } else {
+      res.status(403).send({data:{success: false, message: "Incorrect password."}});
+    }
+  }).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
 });
 
 // User deletes account
@@ -705,21 +671,25 @@ app.post('/getAllFriends', (req, res) => {
   }
   */
 
-  const userName = req.data && req.data.username;
-  if (!userName) {
-    res.status(400).send({ data: { success: false, message: "Missing parameters." } });
-    return;
-  }
-  // For testing, just return the usernames from the mocked db.any
-  db.any('SELECT * FROM friendships WHERE user_id_1 = {user_id_1} OR user_id_2 = {user_id_1};', { user_id_1: userName })
-    .then(friendships => {
-      // If friendships is array of { username: ... }
-      const friends = friendships.map(f => f.username);
-      res.status(200).send({ data: { success: true, message: "Friends retrieved.", friends } });
-    })
-    .catch(_ => {
-      res.status(500).send({ data: { success: false, message: "Internal server error." } });
+  const userName = req['data']['username'];
+  getIDfromUsername(userName)
+  .then(userID => {
+    db.manyOrNone('SELECT * FROM friendships WHERE user_id_1 = {user_id_1} OR user_id_2 = {user_id_1}; ', {user_id_1: userID})
+    .then( gotPass => {
+      const friendList = gotPass.map( f => {
+        if (f.user_id_1 === userID){
+          return f.user_id_2;
+        } else {
+          return f.user_id_1;
+        }
+      });
+      Promise.all(friendList.map(id => getUsernamefromID(id)))
+      .then( friendUsernames => 
+        res.status(200).send({data:{success: true, message: "Friends retrieved.", friends: friendUsernames}})
+      );
     });
+  })
+  .catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}))
 });
 
 // User gets all events a friend has RSVP'd to
@@ -755,52 +725,46 @@ app.post('/getFriendEvents', (req, res) => {
       }
   */
 
-  userName = req['data']['username'];
-  friendUsername = req['data']['friendUsername'];
-  userID = getIDfromUsername(userName).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
-  friendID = getIDfromUsername(friendUsername).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
-  const friendId = db.one(
-    'SELECT FROM friendships WHERE (user_id_1 = {user_id_1} AND user_id_2 = {user_id_2}) OR (user_id_1 = {user_id_2} AND user_id_2 = {user_id_1}); ', {user_id_1: userName, user_id_2: friendUsername})
-  .catch(_ => {res.status(403).send({data:{success: false, message: "Friendship not found."}}); return;})
-  
-  try {
-    const rsvps = db.manyOrNone(
-      'SELECT event_id FROM rsvps WHERE user_id = $1',
-      [userID]
-    );
-
-    const ids = rsvps.map(r => r.event_id);
-
-    if (ids.length === 0) {
-      res.status(200).send({ data: { success: true, events: [] } });
-      return;
-    }
-
-    const events = db.many(
-      `SELECT * FROM events WHERE id = ANY($1::int[])`,
-      [ids]
-    );
-
-    const res_events = events.map(event => ({
-      name: event.name,
-      location: {
-        latitude: event.location.geometry.coordinates[1],
-        longitude: event.location.geometry.coordinates[0]
-      },
-      time: new Date(event.time).toISOString(),
-      duration: event.duration,
-      details: event.details,
-      description: event.description
-    }));
-
-    res.status(200).send({ data: { success: true, events: res_events } });
-    return;
-
-  } catch (e) {
-    res.locals.message = `Error getting RSVP events for user_id: ${uid}.`;
-    res.status(403).send({ data: { success: false, events: undefined } });
-    return;
-  }
+  const userName = req['data']['username'];
+  const friendUsername = req['data']['friendUsername'];
+  getIDfromUsername(userName)
+  .then( userID => {
+    getIDfromUsername(friendUsername).then( friendID => {
+      db.one(
+        'SELECT FROM friendships WHERE (user_id_1 = {user_id_1} AND user_id_2 = {user_id_2}) OR (user_id_1 = {user_id_2} AND user_id_2 = {user_id_1}); ', {user_id_1: userName, user_id_2: friendUsername}
+      ).then( _ => {
+        db.manyOrNone(
+          'SELECT event_id FROM rsvps WHERE user_id = $1',
+          [friendID]
+        ).then( rsvps => {
+          const ids = rsvps.map(r => r.event_id);
+          if (ids.length === 0) {
+            res.status(200).send({ data: { success: true, events: [] } });
+            return;
+          }
+          db.many(
+            `SELECT * FROM events WHERE id = ANY($1::int[])`,
+            [ids]
+          ).then(events => {
+            const res_events = events.map(event => ({
+              name: event.name,
+              location: {
+                latitude: event.location.geometry.coordinates[1],
+                longitude: event.location.geometry.coordinates[0]
+              },
+              time: new Date(event.time).toISOString(),
+              duration: event.duration,
+              details: event.details,
+              description: event.description
+            }));
+            res.status(200).send({ data: { success: true, events: res_events } });
+            return;
+          });
+        });
+      }).catch( _ => res.status(403).send({data:{success: false, message: "Not friends with user."}}) );
+    });
+  })
+  .catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
 });
 
 
