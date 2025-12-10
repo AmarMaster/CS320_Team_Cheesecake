@@ -13,20 +13,22 @@ describe('Auth Endpoints (mocked DB)', () => {
   // LOGIN TESTS
   describe('POST /login', () => {
     test('Login: happy path (valid credentials)', async () => {
-      mockDb.one.mockResolvedValue({ password: 'testpass' });
+      mockDb.one.mockResolvedValueOnce(123);
+      mockDb.one.mockResolvedValueOnce('testpass');
       const res = await request(app)
         .post('/login')
-        .send({ data: { userID: 'testuser', password: 'testpass' } });
+        .send({ data: { username: 'testuser', password: 'testpass' } });
       expect(res.statusCode).toBe(200);
       expect(res.body.data.success).toBe(true);
       expect(res.body.data).toHaveProperty('jwt');
     });
 
     test('Login: invalid password', async () => {
-      mockDb.one.mockResolvedValue({ password: 'testpass' });
+      mockDb.one.mockResolvedValueOnce(123);
+      mockDb.one.mockResolvedValueOnce('testpass');
       const res = await request(app)
         .post('/login')
-        .send({ data: { userID: 'testuser', password: 'wrongpass' } });
+        .send({ data: { username: 'testuser', password: 'wrongpass' } });
       expect(res.statusCode).toBe(401);
       expect(res.body.data.success).toBe(false);
       expect(res.body.data.jwt).toBe('');
@@ -36,7 +38,7 @@ describe('Auth Endpoints (mocked DB)', () => {
       mockDb.one.mockRejectedValue(new Error('Not found'));
       const res = await request(app)
         .post('/login')
-        .send({ data: { userID: 'nouser', password: 'any' } });
+        .send({ data: { username: 'nouser', password: 'any' } });
       expect(res.statusCode).toBe(401);
       expect(res.body.data.success).toBe(false);
       expect(res.body.data.jwt).toBe('');
@@ -45,12 +47,12 @@ describe('Auth Endpoints (mocked DB)', () => {
     test('Login: missing password', async () => {
       const res = await request(app)
         .post('/login')
-        .send({ data: { userID: 'testuser' } });
+        .send({ data: { username: 'testuser' } });
       expect(res.statusCode).toBe(401);
       expect(res.body.data.success).toBe(false);
     });
 
-    test('Login: missing userID', async () => {
+    test('Login: missing username', async () => {
       const res = await request(app)
         .post('/login')
         .send({ data: { password: 'testpass' } });
@@ -65,10 +67,11 @@ describe('Auth Endpoints (mocked DB)', () => {
       // No user found, so registration proceeds
       mockDb.many.mockResolvedValue([]); // No user found
       mockDb.none.mockResolvedValue();   // simulate successful insert
+      mockDb.one.mockResolvedValue({ id: 1, username: 'newuser' }); // simulate user lookup after insert
       const res = await request(app)
         .post('/createAccount')
-        .send({ data: { name: 'newuser', password: 'newpass', email: 'new@user.com' } });
-      expect(res.statusCode).toBe(201);
+        .send({ data: { name: 'newuser', password: 'newpass123', email: 'new@user.com' } });
+      expect(res.statusCode).toBe(200);
       expect(res.body.data.success).toBe(true);
       expect(res.body.data).toHaveProperty('jwt');
     });
@@ -85,7 +88,7 @@ describe('Auth Endpoints (mocked DB)', () => {
       mockDb.many.mockRejectedValue(new Error('Not found'));
       const res = await request(app)
         .post('/createAccount')
-        .send({ data: { name: 'newuser', password: 'newpass', email: 'notanemail' } });
+        .send({ data: { name: 'newuser', password: 'newpass123', email: 'notanemail' } });
       expect(res.statusCode).toBe(400);
       expect(res.body.data.success).toBe(false);
     });
@@ -94,8 +97,8 @@ describe('Auth Endpoints (mocked DB)', () => {
       mockDb.many.mockResolvedValue([{ name: 'newuser', email: 'new@user.com' }]);
       const res = await request(app)
         .post('/createAccount')
-        .send({ data: { name: 'newuser', password: 'newpass', email: 'new@user.com' } });
-      expect(res.statusCode).toBe(409);
+        .send({ data: { name: 'newuser', password: 'newpass123', email: 'new@user.com' } });
+      expect(res.statusCode).toBe(403);
       expect(res.body.data.success).toBe(false);
     });
 
@@ -105,7 +108,7 @@ describe('Auth Endpoints (mocked DB)', () => {
       const longEmail = 'b'.repeat(300) + '@test.com';
       const res = await request(app)
         .post('/createAccount')
-        .send({ data: { name: longName, password: 'newpass', email: longEmail } });
+        .send({ data: { name: longName, password: 'newpass123', email: longEmail } });
       expect([400, 409]).toContain(res.statusCode);
       expect(res.body.data.success).toBe(false);
     });

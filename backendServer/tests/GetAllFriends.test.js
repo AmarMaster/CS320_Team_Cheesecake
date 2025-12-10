@@ -13,10 +13,19 @@ describe("POST /getAllFriends (mocked DB)", () => {
   });
 
   test("Returns list of friends with success", async () => {
-    mockDb.any.mockResolvedValue([
-      { username: "friend1" },
-      { username: "friend2" }
+    // Mock db.one() to return user ID
+    mockDb.one.mockResolvedValue({ id: 1 });
+    // Mock db.manyOrNone() to return friendships
+    mockDb.manyOrNone.mockResolvedValue([
+      { user_id_1: 1, user_id_2: 2 },
+      { user_id_1: 1, user_id_2: 3 }
     ]);
+    // Mock getUsernamefromID calls - needs to return usernames for IDs 2 and 3
+    mockDb.one
+      .mockResolvedValueOnce({ id: 1 })
+      .mockResolvedValueOnce("friend1")
+      .mockResolvedValueOnce("friend2");
+
     const res = await request(app)
       .post("/getAllFriends")
       .send({ data: { username: "user1" } });
@@ -26,7 +35,7 @@ describe("POST /getAllFriends (mocked DB)", () => {
   });
 
   test("Internal server error returns 500", async () => {
-    mockDb.any.mockRejectedValue(new Error("DB error"));
+    mockDb.one.mockRejectedValue(new Error("DB error"));
     const res = await request(app)
       .post("/getAllFriends")
       .send({ data: { username: "user1" } });
