@@ -135,7 +135,8 @@ struct FriendProfileView: View {
                     coordinate: CLLocationCoordinate2D(latitude: 42.3868, longitude: -72.5301),
                     locationString: "Campus Center, Room 101",
                     time: Date(),
-                    duration: 120,
+                    durationHours: 2,
+                    durationMinutes: 0,
                     details: "Friend's saved event"
                 ),
                 EventData(
@@ -144,7 +145,8 @@ struct FriendProfileView: View {
                     coordinate: CLLocationCoordinate2D(latitude: 42.3900, longitude: -72.5280),
                     locationString: "Student Union, Room 205",
                     time: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date(),
-                    duration: 90,
+                    durationHours: 1,
+                    durationMinutes: 30,
                     details: "Another saved event"
                 )
             ]

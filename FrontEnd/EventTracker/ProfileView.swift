@@ -14,6 +14,7 @@ struct ProfileView: View {
     
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var profileImage: UIImage? = nil
+    @State private var showSettingsSheet = false
     
     @State private var events: [EventData] = [
         EventData(
@@ -22,7 +23,8 @@ struct ProfileView: View {
             coordinate: CLLocationCoordinate2D(latitude: 42.391155, longitude: -72.526711),
             locationString: "UMass Amherst",
             time: Date(),
-            duration: 2,
+            durationHours: 2,
+            durationMinutes: 0,
             details: "Sample event details",
             adultOnly: false,
             cost: 0,
@@ -277,6 +279,18 @@ struct ProfileView: View {
         }
         .foregroundColor(.white)
         .font(.subheadline)
+    }
+    
+    private func handleLogout() {
+        // Handle logout logic
+    }
+    
+    private func handleChangePassword(_ newPassword: String) {
+        // Handle change password logic
+    }
+    
+    private func handleDeleteAccount() {
+        // Handle delete account logic
     }
 }
 

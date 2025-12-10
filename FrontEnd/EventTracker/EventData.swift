@@ -12,6 +12,16 @@ struct EventLocation: Codable {
     let longitude: Double
 }
 
+struct Duration: Codable {
+    let hours: Int
+    let minutes: Int?
+    
+    init(hours: Int, minutes: Int = 0) {
+        self.hours = hours
+        self.minutes = minutes
+    }
+}
+
 struct EventData: Identifiable, Codable {
     let id: Int?
     var name: String
@@ -20,7 +30,9 @@ struct EventData: Identifiable, Codable {
     var locationString: String
     var coordinate: CLLocationCoordinate2D
     var time: Date
-    var duration: Int
+    var duration: Duration
+    var durationHours: Int { duration.hours }
+    var durationMinutes: Int { duration.minutes ?? 0 }
     var details: String
     var adultOnly: Bool
     var cost: Double
@@ -31,7 +43,7 @@ struct EventData: Identifiable, Codable {
         case id, name, description, location, locationString, time, duration, details, adultOnly, cost, owner_id, imageData
     }
     
-    init(id: Int? = nil, name: String, description: String, coordinate: CLLocationCoordinate2D, locationString: String, time: Date, duration: Int, details: String, adultOnly: Bool = false, cost: Double = 0, owner_id: Int? = nil, imageData: Data? = nil) {
+    init(id: Int? = nil, name: String, description: String, coordinate: CLLocationCoordinate2D, locationString: String, time: Date, durationHours: Int, durationMinutes: Int, details: String, adultOnly: Bool = false, cost: Double = 0, owner_id: Int? = nil, imageData: Data? = nil) {
         self.id = id
         self.name = name
         self.description = description
@@ -39,7 +51,7 @@ struct EventData: Identifiable, Codable {
         self.locationString = locationString
         self.coordinate = coordinate
         self.time = time
-        self.duration = duration
+        self.duration = Duration(hours: durationHours, minutes: durationMinutes)
         self.details = details
         self.adultOnly = adultOnly
         self.cost = cost
@@ -57,16 +69,16 @@ struct EventData: Identifiable, Codable {
         // TODO:
         // None of these decode properly. They are inconsistent between
         // the backend code and the frontend code: locationString, time,
-        // and duration
+        // and duration (duration,time done)
         
         //try container.decode(String.self, forKey: .locationString)
         locationString = "locationString is not in the damn database for some reason"
         
-        //try container.decode(Date.self, forKey: .time)
-        time = Date.now
+        let timeString = try container.decode(String.self, forKey: .time)
+        let formatter = ISO8601DateFormatter()
+        time = formatter.date(from: timeString) ?? Date.now
         
-        //try container.decode(Int.self, forKey: .duration)
-        duration = 2
+        duration = try container.decodeIfPresent(Duration.self, forKey: .duration) ?? Duration(hours: 2, minutes: 0)
         
         details = try container.decode(String.self, forKey: .details)
         adultOnly = try container.decodeIfPresent(Bool.self, forKey: .adultOnly) ?? false
@@ -83,7 +95,8 @@ struct EventData: Identifiable, Codable {
         try container.encode(description, forKey: .description)
         try container.encode(location, forKey: .location)
         try container.encode(locationString, forKey: .locationString)
-        try container.encode(time, forKey: .time)
+        let formatter = ISO8601DateFormatter()
+        try container.encode(formatter.string(from: time), forKey: .time)
         try container.encode(duration, forKey: .duration)
         try container.encode(details, forKey: .details)
         try container.encode(adultOnly, forKey: .adultOnly)

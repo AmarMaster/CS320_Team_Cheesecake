@@ -38,7 +38,7 @@ struct LoginView: View {
                         .padding(.bottom, 50)
                     
                     VStack(spacing: 12) {
-                        TextField("Name or Email", text: $nameOrEmail, prompt: Text("Name or Email").foregroundColor(.gray))
+                        TextField("Username or Email", text: $nameOrEmail, prompt: Text("Username or Email").foregroundColor(.gray))
                             .textInputAutocapitalization(.never)
                             .padding()
                             .background(Color(UIColorFromRGB(0x312F2F)))

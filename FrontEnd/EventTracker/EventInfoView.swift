@@ -147,7 +147,7 @@ struct EventInfoView: View {
                                         .foregroundColor(.white)
                                         .bold()
                                     Spacer()
-                                    Text("\(event.duration) hour\(event.duration == 1 ? "" : "s")")
+                                    Text("\(event.durationHours)h \(event.durationMinutes)m")
                                         
                                 }.padding()
                                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -238,7 +238,8 @@ struct EventInfoView: View {
         coordinate: CLLocationCoordinate2D(latitude: 42.391155, longitude: -72.526711),
         locationString: "Sample Location",
         time: Date(),
-        duration: 2,
+        durationHours: 2,
+        durationMinutes: 0,
         details: "Sample details",
         imageData: nil
     )
