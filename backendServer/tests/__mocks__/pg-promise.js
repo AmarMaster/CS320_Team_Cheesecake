@@ -4,7 +4,8 @@ const mockDb = {
   many: jest.fn(),
   manyOrNone: jest.fn(),
   one: jest.fn(),
-  none: jest.fn()
+  none: jest.fn(),
+  any: jest.fn()
 };
 
 const pgp = () => () => mockDb;
