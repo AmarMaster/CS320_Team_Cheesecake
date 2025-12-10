@@ -74,44 +74,40 @@ app.post('/login', async (req, res) => {
 });
 
 // create an account, adds data to db and generates userID and jwt token if successful
-app.post('/createAccount', (req, res) => {
-  // req = {
-  //         data: {
-  //           name: String,
-  //           password: String,
-  //           email: String,
-  //         }
-  //       }
-
-  // res = {
-  //   data: {
-  //     success: Boolean,
-  //     message: String,
-  //     jwt: String,
-  //   }
-  // }
-
-  userName = req['data']['name'];
-  userPass = req['data']['password'];
-  userEmail = req['data']['email'];
-  db.many( // make sure no account already exists with that email
-      'SELECT * FROM users WHERE username = {name}', {name: userName}
-    )
-    .then(
-      pass => { // user is found (bad)
-        res.locals.message = `Username already taken.`;
-        res.status(403).send({data:{success: false, message: "Username already taken.", userID: '', jwt: ''}});
-        return;
-      },
-      _ => { // no user is found (good)
-        // generate new random id
-        // add user to db
-        db.none('INSERT INTO Users (name, password, email) VALUES ({name}, {pass}, {email}); ', {name: userName, pass: userPass, email: userEmail})
-        // Generate jwt auth token
-        const token = jwt.sign({ userId: req['data']['userID'] }, "secretKey", { expiresIn: "2h" });
-        res.status(200).send({data:{success: true, message: "Account Created.", jwt: token}});
-      }
-    );
+app.post('/createAccount', async (req, res) => {
+  // Defensive: check for req.body and req.body.data
+  if (!req.body || !req.body.data) {
+    return res.status(400).send({ data: { success: false, message: "Missing registration data.", jwt: '' } });
+  }
+  const { name, password, email } = req.body.data;
+  if (!name || !password || !email) {
+    return res.status(400).send({ data: { success: false, message: "Missing name, password, or email.", jwt: '' } });
+  }
+  // Simple email format validation
+  const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).send({ data: { success: false, message: "Invalid email format.", jwt: '' } });
+  }
+  // Large input check (arbitrary: >100 chars for name/email)
+  if (name.length > 100 || email.length > 100) {
+    return res.status(400).send({ data: { success: false, message: "Name or email too long.", jwt: '' } });
+  }
+  try {
+    // Check if user/email already exists
+    const existing = await db.many('SELECT * FROM users WHERE username = {name} OR email = {email}', { name, email });
+    if (existing && existing.length > 0) {
+      return res.status(409).send({ data: { success: false, message: "Username or email already taken.", jwt: '' } });
+    }
+    // Add user to db
+    await db.none('INSERT INTO Users (name, password, email) VALUES ({name}, {pass}, {email});', { name, pass: password, email });
+    // Generate jwt auth token
+    const token = jwt.sign({ userId: name }, "secretKey", { expiresIn: "2h" });
+    return res.status(201).send({ data: { success: true, message: "Account Created.", jwt: token } });
+  } catch (err) {
+    console.error('Register error:', err);
+    // DB error or other error
+    return res.status(500).send({ data: { success: false, message: "Failed to create account.", jwt: '' } });
+  }
 });
 
 // Frontend requests data for a single event
