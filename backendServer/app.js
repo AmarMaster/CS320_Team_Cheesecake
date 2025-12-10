@@ -12,12 +12,12 @@ const db = require('./db.js');
  
 const getIDfromUsername = (username) => {
   return db.one(
-    'SELECT * FROM users WHERE username = {username}', {username: username}, user => user.id   
+    'SELECT id FROM users WHERE username = {username}', {username: username}
   )
 }
 const getUsernamefromID = (id) => {
   return db.one(
-    'SELECT * FROM users WHERE id = {id}', {id: id}, user => user.username   
+    'SELECT username FROM users WHERE id = {id}', {id: id}
   )
 }
 
@@ -534,7 +534,8 @@ app.post('/changePassword', (req, res) => {
   ).then( gotPass => {
     if (gotPass === userPass){
       db.none('UPDATE users SET password = {newPassword} WHERE username = {username}', {newPassword: newPass, username: userName})
-      .then( _ => res.status(200).send({data:{success: true, message: "Password updated."}}));
+      .then( _ => res.status(200).send({data:{success: true, message: "Password updated."}}))
+      .catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
     } else {
       res.status(403).send({data:{success: false, message: "Incorrect password."}});
     }
@@ -562,12 +563,11 @@ app.post('/deleteAccount', (req, res) => {
   */
 
   userName = req['data']['username'];
-  const gotPass = db.none(
+  db.none(
     'Delete * FROM users WHERE username = {username}', {username: userName}
-  ).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
-
-  res.status(200).send({data:{success: true, message: "Account deleted."}}); 
-  return;
+  ).then(
+    _ => res.status(200).send({data:{success: true, message: "Account deleted."}})
+  ).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}))
 });
 
 
@@ -606,11 +606,9 @@ app.post('/addFriend', (req, res) => {
         'INSERT INTO friendships (user_id_1, user_id_2, status, created_at) VALUES ({user_id_1}, {user_id_2}, {status}, {created_at}); ',
         { user_id_1: userId, user_id_2: friendId, status: 'accepted', created_at: new Date() }
       );
-    })
-    .then(() => {
+    }).then(() => {
       res.status(200).send({ data: { success: true, message: "Friend added." } });
-    })
-    .catch(_ => {
+    }).catch(_ => {
       res.status(500).send({ data: { success: false, message: "Internal server error." } });
     });
 });
@@ -641,13 +639,11 @@ app.post('/removeFriend', (req, res) => {
   db.none(
     'DELETE FROM friendships WHERE (user_id_1 = {user_id_1} AND user_id_2 = {user_id_2}) OR (user_id_1 = {user_id_2} AND user_id_2 = {user_id_1}); ',
     { user_id_1: userName, user_id_2: friendUsername }
-  )
-    .then(() => {
-      res.status(200).send({ data: { success: true, message: "Friend removed." } });
-    })
-    .catch(_ => {
-      res.status(500).send({ data: { success: false, message: "Internal server error." } });
-    });
+  ).then(() => {
+    res.status(200).send({ data: { success: true, message: "Friend removed." } });
+  }).catch(_ => {
+    res.status(500).send({ data: { success: false, message: "Internal server error." } });
+  });
 });
 
 // User gets the list of their friends
@@ -686,10 +682,9 @@ app.post('/getAllFriends', (req, res) => {
       Promise.all(friendList.map(id => getUsernamefromID(id)))
       .then( friendUsernames => 
         res.status(200).send({data:{success: true, message: "Friends retrieved.", friends: friendUsernames}})
-      );
-    });
-  })
-  .catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}))
+      ).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
+    }).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
+  }).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}))
 });
 
 // User gets all events a friend has RSVP'd to
@@ -759,11 +754,11 @@ app.post('/getFriendEvents', (req, res) => {
             }));
             res.status(200).send({ data: { success: true, events: res_events } });
             return;
-          });
-        });
+          }).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
+        }).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
       }).catch( _ => res.status(403).send({data:{success: false, message: "Not friends with user."}}) );
-    });
-  })
+    }).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
+  }).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}))
   .catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
 });
 
