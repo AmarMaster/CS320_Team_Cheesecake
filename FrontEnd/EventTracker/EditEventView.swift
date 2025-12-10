@@ -18,7 +18,8 @@ struct EditEventView: View {
     @State private var description: String
     @State private var location: String
     @State private var time: Date
-    @State private var duration: Int
+    @State private var durationHours: Int
+    @State private var durationMinutes: Int
     @State private var details: String
     @State private var twentyoneplus = false
     @State private var cost: Double = 0
@@ -45,7 +46,8 @@ struct EditEventView: View {
         self._description = State(initialValue: event.description)
         self._location = State(initialValue: event.locationString)
         self._time = State(initialValue: event.time)
-        self._duration = State(initialValue: event.duration)
+        self._durationHours = State(initialValue: event.durationHours)
+        self._durationMinutes = State(initialValue: event.durationMinutes)
         self._details = State(initialValue: event.details)
         self._twentyoneplus = State(initialValue: event.adultOnly)
         self._cost = State(initialValue: event.cost)
@@ -217,25 +219,31 @@ struct EditEventView: View {
                                     .colorScheme(.dark)
                                 
                                 // Duration picker
-                                HStack {
-                                    Text("Duration (hours)")
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Duration")
                                         .foregroundColor(.white)
                                         .bold()
-                                    Spacer()
-                                    Picker("Duration", selection: $duration) {
-                                        Text("1 hour").tag(1)
-                                        Text("2 hours").tag(2)
-                                        Text("3 hours").tag(3)
-                                        Text("4 hours").tag(4)
-                                        Text("6 hours").tag(6)
-                                        Text("8 hours").tag(8)
+                                    HStack {
+                                        Picker("Hours", selection: $durationHours) {
+                                            ForEach(0...12, id: \.self) { hour in
+                                                Text("\(hour)h").tag(hour)
+                                            }
+                                        }
+                                        .pickerStyle(WheelPickerStyle())
+                                        .frame(width: 80)
+                                        
+                                        Picker("Minutes", selection: $durationMinutes) {
+                                            ForEach([0, 15, 30, 45], id: \.self) { minute in
+                                                Text("\(minute)m").tag(minute)
+                                            }
+                                        }
+                                        .pickerStyle(WheelPickerStyle())
+                                        .frame(width: 80)
                                     }
-                                    .pickerStyle(MenuPickerStyle())
                                     .foregroundColor(.white)
                                 }
                                 .padding()
                                 .background(Color(UIColorFromRGB(0x312F2F)))
-                                .foregroundColor(.white)
                                 .cornerRadius(16)
                                 .colorScheme(.dark)
                                 
@@ -291,7 +299,8 @@ struct EditEventView: View {
                                     coordinate: coord,
                                     locationString: location,
                                     time: time,
-                                    duration: duration,
+                                    durationHours: durationHours,
+                                    durationMinutes: durationMinutes,
                                     details: details,
                                     adultOnly: twentyoneplus,
                                     cost: cost,
@@ -333,7 +342,8 @@ struct EditEventView: View {
             coordinate: CLLocationCoordinate2D(latitude: 42.391155, longitude: -72.526711),
             locationString: "Sample Location",
             time: Date(),
-            duration: 2,
+            durationHours: 2,
+            durationMinutes: 0,
             details: "Sample details",
             imageData: nil
         )]),

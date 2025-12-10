@@ -18,7 +18,8 @@ struct AddEventView: View {
     @State private var description = ""
     @State private var location = ""
     @State private var time = Date()
-    @State private var duration = 1
+    @State private var durationHours = 1
+    @State private var durationMinutes = 0
     @State private var details = ""
     @State private var twentyoneplus = false
     @State private var cost: Double = 0
@@ -194,25 +195,31 @@ struct AddEventView: View {
                                     .colorScheme(.dark)
                                 
                                 // Duration picker
-                                HStack {
-                                    Text("Duration (hours)")
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Duration")
                                         .foregroundColor(.white)
                                         .bold()
-                                    Spacer()
-                                    Picker("Duration", selection: $duration) {
-                                        Text("1 hour").tag(1)
-                                        Text("2 hours").tag(2)
-                                        Text("3 hours").tag(3)
-                                        Text("4 hours").tag(4)
-                                        Text("6 hours").tag(6)
-                                        Text("8 hours").tag(8)
+                                    HStack {
+                                        Picker("Hours", selection: $durationHours) {
+                                            ForEach(0...12, id: \.self) { hour in
+                                                Text("\(hour)h").tag(hour)
+                                            }
+                                        }
+                                        .pickerStyle(WheelPickerStyle())
+                                        .frame(width: 80)
+                                        
+                                        Picker("Minutes", selection: $durationMinutes) {
+                                            ForEach([0, 15, 30, 45], id: \.self) { minute in
+                                                Text("\(minute)m").tag(minute)
+                                            }
+                                        }
+                                        .pickerStyle(WheelPickerStyle())
+                                        .frame(width: 240)
                                     }
-                                    .pickerStyle(MenuPickerStyle())
                                     .foregroundColor(.white)
                                 }
                                 .padding()
                                 .background(Color(UIColorFromRGB(0x312F2F)))
-                                .foregroundColor(.white)
                                 .cornerRadius(16)
                                 .colorScheme(.dark)
                                 
@@ -268,7 +275,8 @@ struct AddEventView: View {
                                     coordinate: coord,
                                     locationString: location,
                                     time: time,
-                                    duration: duration,
+                                    durationHours: durationHours,
+                                    durationMinutes: durationMinutes,
                                     details: details,
                                     adultOnly: twentyoneplus,
                                     cost: cost,
