@@ -18,13 +18,16 @@ describe('Event Endpoints (mocked DB)', () => {
   describe('POST /api/events', () => {
     test('Happy path: valid event data', async () => {
       mockDb.one.mockResolvedValue({ id: 1, name: 'Party' });
+      // Use a future date that's always valid
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7); // 7 days from now
       const res = await request(app)
         .post('/api/events')
         .set('Authorization', `Bearer ${TEST_TOKEN}`)
         .send({
           name: 'Party',
           location: 'Campus',
-          time: '2025-12-10T18:00:00Z',
+          time: futureDate.toISOString(),
           duration: '2 hours',
           details: 'Bring snacks',
           description: 'End of semester party'

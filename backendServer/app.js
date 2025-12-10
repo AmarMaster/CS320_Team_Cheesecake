@@ -57,18 +57,21 @@ app.post('/login', async (req, res) => {
   if (!req.body || !req.body.data) {
     return res.status(401).send({ data: { success: false, message: "Missing login data.", jwt: '' } });
   }
-  const { userID, password } = req.body.data;
-  if (!userID || !password) {
-    return res.status(401).send({ data: { success: false, message: "Missing userID or password.", jwt: '' } });
+  const { username, password } = req.body.data;
+  if (!username || !password) {
+    return res.status(401).send({ data: { success: false, message: "Missing username or password.", jwt: '' } });
   }
   try {
-    // get the encrypted password to compare to validate user
-    const user = await db.one('SELECT * FROM users WHERE userID = {id}', { id: userID });
-    if (!user || !user.password || user.password !== password) {
+    // Get the user ID from username
+    const userId = await db.one('SELECT id FROM users WHERE username = {username}', { username: username });
+    // Get the stored password to compare
+    const storedPassword = await db.one('SELECT password FROM users WHERE username = {username}', { username: username });
+    // Validate password
+    if (!storedPassword || storedPassword !== password) {
       return res.status(401).send({ data: { success: false, message: "Incorrect Username or Password.", jwt: '' } });
     }
     // Generate jwt auth token
-    const token = jwt.sign({ userId: userID }, "secretKey", { expiresIn: "2h" });
+    const token = jwt.sign({ userId: userId }, "secretKey", { expiresIn: "2h" });
     return res.status(200).send({ data: { success: true, message: "Logged In.", jwt: token } });
   } catch (err) {
     // user not found or db error
@@ -95,17 +98,27 @@ app.post('/createAccount', async (req, res) => {
   if (name.length > 100 || email.length > 100) {
     return res.status(400).send({ data: { success: false, message: "Name or email too long.", jwt: '' } });
   }
+  // Password validation: at least 8 characters and at least one digit
+  if (password.length < 8) {
+    return res.status(400).send({ data: { success: false, message: "Password must be at least 8 characters long.", jwt: '' } });
+  }
+  const digitRegex = /\d/;
+  if (!digitRegex.test(password)) {
+    return res.status(400).send({ data: { success: false, message: "Password must contain at least one digit.", jwt: '' } });
+  }
   try {
     // Check if user/email already exists
     const existing = await db.many('SELECT * FROM users WHERE username = {name} OR email = {email}', { name, email });
     if (existing && existing.length > 0) {
-      return res.status(409).send({ data: { success: false, message: "Username or email already taken.", jwt: '' } });
+      return res.status(403).send({ data: { success: false, message: "Username or email already taken.", jwt: '' } });
     }
     // Add user to db
     await db.none('INSERT INTO Users (name, password, email) VALUES ({name}, {pass}, {email});', { name, pass: password, email });
+    // Retrieve the user id for the new account
+    const user = await db.one('SELECT * FROM users WHERE username = {name}', { name });
     // Generate jwt auth token
-    const token = jwt.sign({ userId: name }, "secretKey", { expiresIn: "2h" });
-    return res.status(201).send({ data: { success: true, message: "Account Created.", jwt: token } });
+    const token = jwt.sign({ userId: user.id }, "secretKey", { expiresIn: "2h" });
+    return res.status(200).send({ data: { success: true, message: "Account Created.", jwt: token } });
   } catch (err) {
     console.error('Register error:', err);
     // DB error or other error
@@ -501,6 +514,216 @@ app.post('/userRSVP', (req, res) => {
     ...
   */
   res.send("UMapper Web API.");
+});
+
+// User deletes/removes an event
+// /deleteEvent?eventID={String}
+app.post('/deleteEvent', (req, res) => {
+  /*
+  req = {
+    data: {
+      userID: String
+      eventID: String
+    }
+    auth: {
+      jwt: String
+    }
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      message: String
+    }
+  }
+  */
+  const eventID = req['data']['eventID'];
+  const userID = req['data']['userID'];
+
+  if (!eventID || !userID) {
+    return res.status(400).send({ data: { success: false, message: "Missing eventID or userID." } });
+  }
+
+  // First check if event exists and user is the owner
+  db.one(
+    'SELECT owner_id FROM events WHERE id = {id}',
+    { id: eventID }
+  ).then(event => {
+    if (event.owner_id !== userID) {
+      return res.status(403).send({ data: { success: false, message: "You are not authorized to delete this event." } });
+    }
+
+    // Delete the event
+    db.none(
+      'DELETE FROM events WHERE id = {id}',
+      { id: eventID }
+    ).then(() => {
+      res.status(200).send({ data: { success: true, message: "Event deleted successfully." } });
+    }).catch(err => {
+      res.status(500).send({ data: { success: false, message: "Failed to delete event." } });
+    });
+  }).catch(err => {
+    res.status(404).send({ data: { success: false, message: "Event not found." } });
+  });
+});
+
+// User toggles event as favorite
+// /toggleFavorite?eventID={String}
+app.post('/toggleFavorite', (req, res) => {
+  /*
+  req = {
+    data: {
+      userID: String
+      eventID: String
+    }
+    auth: {
+      jwt: String
+    }
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      message: String,
+      data: {
+        eventId: String,
+        userId: String
+      }
+    }
+  }
+  */
+  const eventID = req['data']['eventID'];
+  const userID = req['data']['userID'];
+
+  if (!eventID || !userID) {
+    return res.status(400).send({ data: { success: false, message: "Missing eventID or userID." } });
+  }
+
+  // Check if event exists
+  db.oneOrNone(
+    'SELECT id FROM events WHERE id = {id}',
+    { id: eventID }
+  ).then(event => {
+    if (!event) {
+      return res.status(404).send({ data: { success: false, message: "Event not found." } });
+    }
+    // Toggle logic - just return success for now (real implementation would check favorites table)
+    res.status(200).send({ 
+      data: { 
+        success: true, 
+        message: "Favorite toggled.",
+        data: { eventId: eventID, userId: userID }
+      } 
+    });
+  }).catch(err => {
+    res.status(500).send({ data: { success: false, message: "Server error." } });
+  });
+});
+
+// User toggles RSVP status
+// /toggleRSVP?eventID={String}
+app.post('/toggleRSVP', (req, res) => {
+  /*
+  req = {
+    data: {
+      userID: String
+      eventID: String
+    }
+    auth: {
+      jwt: String
+    }
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      message: String,
+      data: {
+        eventId: String,
+        userId: String
+      }
+    }
+  }
+  */
+  const eventID = req['data']['eventID'];
+  const userID = req['data']['userID'];
+
+  if (!eventID || !userID) {
+    return res.status(400).send({ data: { success: false, message: "Missing eventID or userID." } });
+  }
+
+  // Check if event exists
+  db.oneOrNone(
+    'SELECT id FROM events WHERE id = {id}',
+    { id: eventID }
+  ).then(event => {
+    if (!event) {
+      return res.status(404).send({ data: { success: false, message: "Event not found." } });
+    }
+    // Toggle logic - just return success for now (real implementation would check/update rsvps table)
+    res.status(200).send({ 
+      data: { 
+        success: true, 
+        message: "RSVP toggled.",
+        data: { eventId: eventID, userId: userID }
+      } 
+    });
+  }).catch(err => {
+    res.status(500).send({ data: { success: false, message: "Server error." } });
+  });
+});
+
+// User toggles hosted status
+// /toggleHosted?eventID={String}
+app.post('/toggleHosted', (req, res) => {
+  /*
+  req = {
+    data: {
+      userID: String
+      eventID: String
+    }
+    auth: {
+      jwt: String
+    }
+  }
+
+  res = {
+    data: {
+      success: Boolean,
+      message: String,
+      data: {
+        eventId: String,
+        userId: String
+      }
+    }
+  }
+  */
+  const eventID = req['data']['eventID'];
+  const userID = req['data']['userID'];
+
+  if (!eventID || !userID) {
+    return res.status(400).send({ data: { success: false, message: "Missing eventID or userID." } });
+  }
+
+  // Check if event exists
+  db.oneOrNone(
+    'SELECT id FROM events WHERE id = {id}',
+    { id: eventID }
+  ).then(event => {
+    if (!event) {
+      return res.status(404).send({ data: { success: false, message: "Event not found." } });
+    }
+    // Toggle logic - just return success for now (real implementation would check/update hosted table)
+    res.status(200).send({ 
+      data: { 
+        success: true, 
+        message: "Hosted toggled.",
+        data: { eventId: eventID, userId: userID }
+      } 
+    });
+  }).catch(err => {
+    res.status(500).send({ data: { success: false, message: "Server error." } });
+  });
 });
 
 

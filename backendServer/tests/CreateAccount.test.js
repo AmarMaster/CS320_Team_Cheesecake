@@ -19,18 +19,18 @@ describe("POST /createAccount (mocked DB)", () => {
 
     const res = await request(app)
       .post("/createAccount")
-      .send({ data: { name: "taken", password: "pw", email: "a@b.com" } });
+      .send({ data: { name: "taken", password: "pw123456", email: "a@b.com" } });
 
     expect(res.statusCode).toBe(403);
     expect(res.body.data.success).toBe(false);
   });
 
   test("New username creates account and returns 200 with jwt", async () => {
-    // Simulate db.many rejecting (no user found), and db.none resolving for insert
-    mockDb.many.mockRejectedValue(new Error("No user"));
+    // Simulate db.many resolving with empty array (no user found), and db.none resolving for insert
+    mockDb.many.mockResolvedValue([]);
     mockDb.none.mockResolvedValue(undefined);
     // After insert, lookup id for the new username
-    mockDb.one.mockResolvedValueOnce(321);
+    mockDb.one.mockResolvedValue({ id: 321, username: "newuser" });
 
     const res = await request(app)
       .post("/createAccount")
