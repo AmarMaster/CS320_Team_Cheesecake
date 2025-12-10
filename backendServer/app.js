@@ -486,36 +486,6 @@ app.post('/changeEvent', (req, res) => {
   );
 });
 
-// User RSVPs/changes RSVP to event
-app.post('/userRSVP', (req, res) => {
-  /*
-  req = {
-    data: {
-      userID = String
-      eventID = String
-      RSVPstatus = Int
-    }
-    auth: {
-      jwt: String
-    }
-  }
-
-  res = {
-    data: {
-      success: Boolean,
-      RSVPstatus: Int
-    }
-  }
-  
-  RSVPstatus:
-    0 = no RSVP
-    1 = attending
-    2 = not attending
-    ...
-  */
-  res.send("UMapper Web API.");
-});
-
 // User deletes/removes an event
 // /deleteEvent?eventID={String}
 app.post('/deleteEvent', (req, res) => {
@@ -621,13 +591,14 @@ app.post('/toggleFavorite', (req, res) => {
 });
 
 // User toggles RSVP status
-// /toggleRSVP?eventID={String}
+// /toggleRSVP
 app.post('/toggleRSVP', (req, res) => {
   /*
   req = {
     data: {
-      userID: String
-      eventID: String
+      userID: String,
+      eventID: String,
+      rsvpStatus: Integer  // 0 = not going, 1 = going
     }
     auth: {
       jwt: String
@@ -647,6 +618,7 @@ app.post('/toggleRSVP', (req, res) => {
   */
   const eventID = req['data']['eventID'];
   const userID = req['data']['userID'];
+  let status = req['data']['rsvpStatus'];
 
   if (!eventID || !userID) {
     return res.status(400).send({ data: { success: false, message: "Missing eventID or userID." } });
@@ -659,18 +631,20 @@ app.post('/toggleRSVP', (req, res) => {
   ).then(event => {
     if (!event) {
       return res.status(404).send({ data: { success: false, message: "Event not found." } });
+    } else {
+      status = "Attending" ? status === 1 : "Not Attending";
+      db.none('INSERT INTO rsvps (user_id, event_id, status) VALUES ({user_id}, {event_id}, {status}) ON CONFLICT (user_id, event_id) DO UPDATE SET status = {status};', { user_id: userID, event_id: eventID, status: status })
+      .then(() => {
+        res.status(200).send({ 
+          data: { 
+            success: true, 
+            message: "RSVP toggled.",
+            data: { eventId: eventID, userId: userID }
+          } 
+        });
+      }).catch(_ => res.status(500).send({ data: { success: false, message: "Server error." } }) );;
     }
-    // Toggle logic - just return success for now (real implementation would check/update rsvps table)
-    res.status(200).send({ 
-      data: { 
-        success: true, 
-        message: "RSVP toggled.",
-        data: { eventId: eventID, userId: userID }
-      } 
-    });
-  }).catch(err => {
-    res.status(500).send({ data: { success: false, message: "Server error." } });
-  });
+  }).catch(_ => res.status(500).send({ data: { success: false, message: "Server error." } }) );
 });
 
 // User toggles hosted status

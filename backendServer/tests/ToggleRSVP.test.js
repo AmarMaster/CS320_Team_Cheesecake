@@ -14,7 +14,8 @@ describe("POST /toggleRSVP (mocked DB)", () => {
   });
 
   test("Successfully toggle RSVP returns 200", async () => {
-    mockDb.oneOrNone.mockResolvedValue({ id: "100" });
+    mockDb.oneOrNone.mockResolvedValueOnce({ id: "100" });
+    mockDb.none.mockResolvedValueOnce();
 
     const res = await request(app)
       .post("/toggleRSVP")
@@ -95,7 +96,8 @@ describe("POST /toggleRSVP (mocked DB)", () => {
   });
 
   test("Toggle RSVP returns correct data structure", async () => {
-    mockDb.oneOrNone.mockResolvedValue({ id: "100" });
+    mockDb.oneOrNone.mockResolvedValueOnce({ id: "100" });
+    mockDb.none.mockResolvedValueOnce();
 
     const res = await request(app)
       .post("/toggleRSVP")
@@ -115,7 +117,12 @@ describe("POST /toggleRSVP (mocked DB)", () => {
   });
 
   test("Multiple RSVP toggles return 200 each time", async () => {
-    mockDb.oneOrNone.mockResolvedValue({ id: "100" });
+    mockDb.oneOrNone.mockResolvedValueOnce({ id: "100" });
+    mockDb.none.mockResolvedValueOnce();
+    mockDb.oneOrNone.mockResolvedValueOnce({ id: "200" });
+    mockDb.none.mockResolvedValueOnce();
+    mockDb.oneOrNone.mockResolvedValueOnce({ id: "300" });
+    mockDb.none.mockResolvedValueOnce();
 
     // First toggle
     let res = await request(app)
