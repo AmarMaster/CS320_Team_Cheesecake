@@ -132,6 +132,24 @@ describe('Event Endpoints (mocked DB)', () => {
 
   // UPDATE EVENT (if implemented)
   describe('PUT /api/events/:id', () => {
+  test('Non-host attempts to update event', async () => {
+    // Pretend the event exists and is owned by someone else
+    const NON_HOST_TOKEN = jwt.sign({ id: 999 }, 'your_jwt_secret');
+    mockDb.one.mockResolvedValueOnce({ owner_id: 1 }); // event owned by user 1
+    const res = await request(app)
+      .put('/api/events/1')
+      .set('Authorization', `Bearer ${NON_HOST_TOKEN}`)
+      .send({
+        name: 'Malicious Update',
+        location: 'Campus',
+        time: '2025-12-11T18:00:00Z',
+        duration: '3 hours',
+        details: 'Bad details',
+        description: 'Bad description'
+      });
+    expect([401, 403]).toContain(res.statusCode);
+    expect(res.body.success).toBe(false);
+  });
     test('Happy path: valid update', async () => {
       // Pretend the event exists and is owned by the user
       mockDb.one.mockResolvedValueOnce({ owner_id: TEST_USER_ID }); // owner check
@@ -189,6 +207,16 @@ describe('Event Endpoints (mocked DB)', () => {
 
   // DELETE EVENT
   describe('DELETE /api/events/:id', () => {
+  test('Non-host attempts to delete event', async () => {
+    // Pretend the event exists and is owned by someone else
+    const NON_HOST_TOKEN = jwt.sign({ id: 999 }, 'your_jwt_secret');
+    mockDb.one.mockResolvedValueOnce({ owner_id: 1 }); // event owned by user 1
+    const res = await request(app)
+      .delete('/api/events/1')
+      .set('Authorization', `Bearer ${NON_HOST_TOKEN}`);
+    expect([401, 403]).toContain(res.statusCode);
+    expect(res.body.success).toBe(false);
+  });
     test('Happy path: valid event ID', async () => {
       mockDb.one.mockResolvedValueOnce({ owner_id: TEST_USER_ID }); // owner check
       mockDb.one.mockResolvedValueOnce({ id: 1 }); // for delete
