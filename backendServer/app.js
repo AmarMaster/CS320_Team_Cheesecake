@@ -253,8 +253,8 @@ app.get('/getEventList', (req, res) => {
       db.manyOrNone(
         'SELECT event_id FROM rsvps WHERE user_id = $1',
         [uid]
-      ).then(rsvps => {
-        const ids = rsvps.map(r => r.event_id);
+      ).then(ids => {
+        console.log("RSVP event IDs:", ids);
         if (ids.length === 0) {
           res.status(200).send({ data: { success: true, events: [] } });
           return;
