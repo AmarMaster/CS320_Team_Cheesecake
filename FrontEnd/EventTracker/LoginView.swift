@@ -14,6 +14,7 @@ struct LoginView: View {
     @State private var email = ""
     
     @State private var showError = false
+    @State private var errorMessage = ""
     @State private var canContinue = false
     
     var body: some View {
@@ -61,8 +62,12 @@ struct LoginView: View {
 //                    }.padding(.horizontal, 20)
 //                        .padding(.vertical, 29)
                     Button(action: {
-                        if (nameOrEmail.isEmpty || password.isEmpty) {
+                        if nameOrEmail.isEmpty || password.isEmpty {
                             showError = true
+                            errorMessage = "All fields are required."
+                        } else if (nameOrEmail != fixedName && nameOrEmail != fixedEmail) || password.isEmpty {
+                            showError = true
+                            errorMessage = "Invalid username/email or password."
                         } else {
                             showError = false
                             canContinue = true
@@ -80,9 +85,11 @@ struct LoginView: View {
                         .padding(.bottom, 10)
                     
                     if showError {
-                        Text("All fields are required.")
+                        Text(errorMessage)
                             .foregroundColor(.red)
                             .font(.body)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
                     }
                     NavigationLink(destination: CreateAccountView()){
                         Text("Don't have an account? Create an account")

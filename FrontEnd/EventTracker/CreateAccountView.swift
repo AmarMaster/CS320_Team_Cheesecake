@@ -8,9 +8,11 @@ import SwiftUI
 struct CreateAccountView: View {
     @State private var name = ""
     @State private var password = ""
+    @State private var confirmPassword = ""
     @State private var email = ""
     
     @State private var showError = false
+    @State private var errorMessage = ""
     @State private var canContinue = false
     
     var body: some View {
@@ -34,7 +36,7 @@ struct CreateAccountView: View {
                         .padding(.bottom, 50)
                     
                     VStack(spacing: 12) {
-                        TextField("Name", text: $name, prompt: Text("Name").foregroundColor(.gray))
+                        TextField("Username", text: $name, prompt: Text("Username").foregroundColor(.gray))
                             .textInputAutocapitalization(.never)
                             .padding()
                             .background(Color(UIColorFromRGB(0x312F2F)))
@@ -51,14 +53,34 @@ struct CreateAccountView: View {
                             .background(Color(UIColorFromRGB(0x312F2F)))
                             .foregroundColor(.white)
                             .cornerRadius(16)
+                        
+                        Text("Must be at least 8 characters and contain a special character (!@#$%^&*)")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 4)
+                        SecureField("Confirm Password", text: $confirmPassword, prompt: Text("Confirm Password").foregroundColor(.gray))
+                            .padding()
+                            .background(Color(UIColorFromRGB(0x312F2F)))
+                            .foregroundColor(.white)
+                            .cornerRadius(16)
 
                     }.padding(.horizontal, 20)
                     
                     // Continue button
                     Button(action: {
-                        if name.isEmpty || email.isEmpty || password.isEmpty {
+                        if name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty {
                             showError = true
+                            errorMessage = "All fields are required."
+                        } else if !isValidPassword(password) {
+                            showError = true
+                            errorMessage = "Password must be at least 8 characters and contain a special character (!@#$%^&*)."
+                        } else if password != confirmPassword {
+                            showError = true
+                            errorMessage = "Passwords do not match."
                         } else {
+                            showError = false
                             canContinue = true
                         }
                     }) {
@@ -73,9 +95,12 @@ struct CreateAccountView: View {
                         .padding(.bottom, 10)
                     
                     if showError {
-                        Text("All fields are required.")
+                        Text(errorMessage)
                             .foregroundColor(.red)
                             .font(.body)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 20)
                     }
                     
                     NavigationLink(destination: LoginView(fixedName: name, fixedEmail: email)){

@@ -4,8 +4,15 @@ const mockDb = {
   many: jest.fn(),
   manyOrNone: jest.fn(),
   one: jest.fn(),
+  oneOrNone: jest.fn(),
+  any: jest.fn(),
   none: jest.fn()
 };
+
+mockDb.none = jest.fn((...args) => {
+  console.log('MOCK DB .none CALLED WITH:', args);
+  return Promise.resolve();
+});
 
 const pgp = () => () => mockDb;
 
