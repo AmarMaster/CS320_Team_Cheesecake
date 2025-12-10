@@ -12,6 +12,7 @@ struct FriendProfileView: View {
     let fixedEmail: String
     
     @State private var events: [EventData] = []
+    @State private var isFriend = true
     
     var body: some View {
         NavigationStack {
@@ -35,6 +36,20 @@ struct FriendProfileView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.white)
                             .padding(.top, 10)
+                        
+                        Button(action: {
+                            isFriend.toggle()
+                        }) {
+                            Text(isFriend ? "Remove Friend" : "Add Friend")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 10)
+                                .background(isFriend ? Color.red : Color(UIColorFromRGB(0xFF5934)))
+                                .foregroundColor(.white)
+                                .cornerRadius(20)
+                        }
+                        .padding(.top, 10)
                     }
                     .padding(.top, 20)
                     

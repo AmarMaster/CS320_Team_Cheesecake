@@ -252,6 +252,7 @@ struct AddEventView: View {
                         Text("All fields are required.")
                             .foregroundColor(.red)
                             .font(.body)
+                            .padding(.horizontal, 20)
                     }
                     VStack {
                         Button(action: {
