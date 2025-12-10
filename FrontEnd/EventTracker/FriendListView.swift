@@ -37,7 +37,7 @@ struct FriendListView: View {
                 Color(UIColorFromRGB(0x1B1A1A)).ignoresSafeArea()
                 
                 VStack {
-           
+        
                     HStack {
                         // Search Bar
                         HStack {
@@ -50,7 +50,6 @@ struct FriendListView: View {
                         .background(Color(UIColorFromRGB(0x312F2F)))
                         .cornerRadius(16)
                         
-                    
                         Button("Search") {
                             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                         }
@@ -73,7 +72,7 @@ struct FriendListView: View {
 
                         LazyVStack(spacing: 10) {
                             ForEach(filteredFriends, id: \.id) { friend in
-                                NavigationLink(destination: FriendProfileView(friendName: friend.name, fixedName: fixedName, fixedEmail: fixedEmail)) {
+                                NavigationLink(destination: FriendProfileView(friendUsername: friend.name, fixedName: fixedName, fixedEmail: fixedEmail)) {
                                     HStack {
                                         // Profile Picture
                                         Circle()
