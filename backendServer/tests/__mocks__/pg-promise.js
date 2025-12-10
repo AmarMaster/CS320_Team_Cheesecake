@@ -4,9 +4,8 @@ const mockDb = {
   many: jest.fn(),
   manyOrNone: jest.fn(),
   one: jest.fn(),
-  oneOrNone: jest.fn(),
-  any: jest.fn(),
-  none: jest.fn()
+  none: jest.fn(),
+  any: jest.fn()
 };
 
 mockDb.none = jest.fn((...args) => {

@@ -8,9 +8,7 @@ var logger = require('morgan');
 const jwt = require("jsonwebtoken");
 
 // PostgreSQL integration
-const pgp = require('pg-promise')(/* options */)
-//const db = require('./db.js');
-const db = pgp('postgres://zacharya:admin@localhost:5432/eventtracker-db');
+const db = require('./db.js');
  
 const getIDfromUsername = (username) => {
   return db.one(
@@ -37,6 +35,11 @@ app.set('view engine', 'pug');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+// Compatibility shim: some handlers expect req['data'] instead of req.body
+app.use((req, res, next) => {
+  if (!req.data) req.data = req.body && Object.keys(req.body).length ? req.body.data || req.body : undefined;
+  next();
+});
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -589,22 +592,27 @@ app.post('/addFriend', (req, res) => {
   }
   */
 
-  const userName = req['data']['username'];
-  const friendUsername = req['data']['friendUsername'];
-  getIDfromUsername(userName).then( userId => {
-    getIDfromUsername(friendUsername).then(friendId => {
-      db.none(
-        'INSERT INTO friendships (user_id_1, user_id_2, status, created_at) VALUES ({user_id_1}, {user_id_2}, {status}, {created_at}); ',
-         {user_id_1: userId, user_id_2: friendId, status: 'accepted', created_at: new Date()}
-        ).then( _ => {
-          res.status(200).send({data:{success: true, message: "Friend added."}}); 
-          return;
-        });
-    });
-  }).catch(_ => {
-    res.status(500).send({data:{success: false, message: "Internal server error."}}); 
+  const userName = req.data && req.data.username;
+  const friendUsername = req.data && req.data.friendUsername;
+
+  if (!userName || !friendUsername) {
+    res.status(400).send({ data: { success: false, message: "Missing parameters." } });
     return;
-  });
+  }
+
+  Promise.all([getIDfromUsername(userName), getIDfromUsername(friendUsername)])
+    .then(([userId, friendId]) => {
+      return db.none(
+        'INSERT INTO friendships (user_id_1, user_id_2, status, created_at) VALUES ({user_id_1}, {user_id_2}, {status}, {created_at}); ',
+        { user_id_1: userId, user_id_2: friendId, status: 'accepted', created_at: new Date() }
+      );
+    })
+    .then(() => {
+      res.status(200).send({ data: { success: true, message: "Friend added." } });
+    })
+    .catch(_ => {
+      res.status(500).send({ data: { success: false, message: "Internal server error." } });
+    });
 });
 
 // User removes a friend
@@ -628,12 +636,18 @@ app.post('/removeFriend', (req, res) => {
   }
   */
 
-  const userName = req['data']['username'];
-  const friendUsername = req['data']['friendUsername'];
+  const userName = req.data && req.data.username;
+  const friendUsername = req.data && req.data.friendUsername;
   db.none(
-    'DELETE FROM friendships WHERE (user_id_1 = {user_id_1} AND user_id_2 = {user_id_2}) OR (user_id_1 = {user_id_2} AND user_id_2 = {user_id_1}); ', {user_id_1: userName, user_id_2: friendUsername})
-  .then( _ => res.status(200).send({data:{success: true, message: "Friend removed."}}))
-  .catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
+    'DELETE FROM friendships WHERE (user_id_1 = {user_id_1} AND user_id_2 = {user_id_2}) OR (user_id_1 = {user_id_2} AND user_id_2 = {user_id_1}); ',
+    { user_id_1: userName, user_id_2: friendUsername }
+  )
+    .then(() => {
+      res.status(200).send({ data: { success: true, message: "Friend removed." } });
+    })
+    .catch(_ => {
+      res.status(500).send({ data: { success: false, message: "Internal server error." } });
+    });
 });
 
 // User gets the list of their friends
