@@ -137,7 +137,7 @@ app.get('/getEventData', (req, res) => {
         description: String
       }
   */
-  eid = req.query.eventID
+  const eid = req.query.eventID
   if (!eid){
     res.status(400).send({data:{success: false, event: undefined}}); // do nothing if no eventID provided
     return;
@@ -250,7 +250,7 @@ app.get('/getEventList', (req, res) => {
   if (uid) {
 
     try {
-      const rsvps = db.manyOrNone(
+      db.manyOrNone(
         'SELECT event_id FROM rsvps WHERE user_id = $1',
         [uid]
       ).then(rsvps => {
@@ -328,7 +328,7 @@ app.get('/getEventList', (req, res) => {
     }
 
     try {
-      const res_events = db.manyOrNone(sql, params).then(events => {
+      db.manyOrNone(sql, params).then(events => {
         return events.map(event => ({
           name: event.name,
           location: {
@@ -360,8 +360,8 @@ app.post('/createEvent', (req, res) => {
   /*
   req = {
     data: {
-      userID = String
-      event = Event
+      userID: String
+      event: Event
     }
     auth: {
       jwt: String
@@ -417,9 +417,9 @@ app.post('/changeEvent', (req, res) => {
   /*
   req = {
     data: {
-      userID = String
-      eventID = String
-      event = Event
+      userID: String
+      eventID: String
+      event: Event
     }
     auth: {
       jwt: String
@@ -523,23 +523,19 @@ app.post('/changePassword', (req, res) => {
   }
   */
 
-  userName = req['data']['username'];
-  userPass = req['data']['password'];
-  newPass = req['data']['newPassword'];
-  const gotPass = db.one(
+  const userName = req['data']['username'];
+  const userPass = req['data']['password'];
+  const newPass = req['data']['newPassword'];
+  db.one(
     'SELECT * FROM users WHERE username = {username}', {username: userName}, user => user.password   
-  )
-  
-  if (gotPass === userPass){
-    db.none('UPDATE users SET password = {newPassword} WHERE username = {username}', {newPassword: newPass, username: userName}).catch(
-      _ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;}
-    );
-    res.status(200).send({data:{success: true, message: "Password updated."}}); 
-    return;
-  } else {
-    res.status(403).send({data:{success: false, message: "Incorrect password."}});
-    return;
-  }
+  ).then( gotPass => {
+    if (gotPass === userPass){
+      db.none('UPDATE users SET password = {newPassword} WHERE username = {username}', {newPassword: newPass, username: userName})
+      .then( _ => res.status(200).send({data:{success: true, message: "Password updated."}}));
+    } else {
+      res.status(403).send({data:{success: false, message: "Incorrect password."}});
+    }
+  }).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
 });
 
 // User deletes account
@@ -593,16 +589,22 @@ app.post('/addFriend', (req, res) => {
   }
   */
 
-  userName = req['data']['username'];
-  friendUsername = req['data']['friendUsername'];
-  userId = getIDfromUsername(userName).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
-  friendId = getIDfromUsername(friendUsername).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
-  const gotPass = db.none(
-    'INSERT INTO friendships (user_id_1, user_id_2, status, created_at) VALUES ({user_id_1}, {user_id_2}, {status}, {created_at}); ', {user_id_1: userId, user_id_2: friendId, status: 'accepted', created_at: new Date()})
-  .catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
-
-  res.status(200).send({data:{success: true, message: "Friend added."}}); 
-  return;
+  const userName = req['data']['username'];
+  const friendUsername = req['data']['friendUsername'];
+  getIDfromUsername(userName).then( userId => {
+    getIDfromUsername(friendUsername).then(friendId => {
+      db.none(
+        'INSERT INTO friendships (user_id_1, user_id_2, status, created_at) VALUES ({user_id_1}, {user_id_2}, {status}, {created_at}); ',
+         {user_id_1: userId, user_id_2: friendId, status: 'accepted', created_at: new Date()}
+        ).then( _ => {
+          res.status(200).send({data:{success: true, message: "Friend added."}}); 
+          return;
+        });
+    });
+  }).catch(_ => {
+    res.status(500).send({data:{success: false, message: "Internal server error."}}); 
+    return;
+  });
 });
 
 // User removes a friend
@@ -626,14 +628,12 @@ app.post('/removeFriend', (req, res) => {
   }
   */
 
-  userName = req['data']['username'];
-  friendUsername = req['data']['friendUsername'];
-  const gotPass = db.none(
+  const userName = req['data']['username'];
+  const friendUsername = req['data']['friendUsername'];
+  db.none(
     'DELETE FROM friendships WHERE (user_id_1 = {user_id_1} AND user_id_2 = {user_id_2}) OR (user_id_1 = {user_id_2} AND user_id_2 = {user_id_1}); ', {user_id_1: userName, user_id_2: friendUsername})
-  .catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
-
-  res.status(200).send({data:{success: true, message: "Friend removed."}}); 
-  return;
+  .then( _ => res.status(200).send({data:{success: true, message: "Friend removed."}}))
+  .catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
 });
 
 // User gets the list of their friends
@@ -657,22 +657,25 @@ app.post('/getAllFriends', (req, res) => {
   }
   */
 
-  userName = req['data']['username'];
-  userID = getIDfromUsername(userName).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
-  const gotPass = db.manyOrNone(
-    'SELECT * FROM friendships WHERE user_id_1 = {user_id_1} OR user_id_2 = {user_id_1}; ', {user_id_1: userID})
-  .catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
-
-  friendList = gotPass.map( f => {
-    if (f.user_id_1 == userID){
-      return f.user_id_2;
-    } else {
-      return f.user_id_1;
-    }
-  }).map(id => getUsernamefromID(id));
-  
-  res.status(200).send({data:{success: true, message: "Friends retrieved.", friends: friendList}}); 
-  return;
+  const userName = req['data']['username'];
+  getIDfromUsername(userName)
+  .then(userID => {
+    db.manyOrNone('SELECT * FROM friendships WHERE user_id_1 = {user_id_1} OR user_id_2 = {user_id_1}; ', {user_id_1: userID})
+    .then( gotPass => {
+      const friendList = gotPass.map( f => {
+        if (f.user_id_1 === userID){
+          return f.user_id_2;
+        } else {
+          return f.user_id_1;
+        }
+      });
+      Promise.all(friendList.map(id => getUsernamefromID(id)))
+      .then( friendUsernames => 
+        res.status(200).send({data:{success: true, message: "Friends retrieved.", friends: friendUsernames}})
+      );
+    });
+  })
+  .catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}))
 });
 
 // User gets all events a friend has RSVP'd to
@@ -708,52 +711,46 @@ app.post('/getFriendEvents', (req, res) => {
       }
   */
 
-  userName = req['data']['username'];
-  friendUsername = req['data']['friendUsername'];
-  userID = getIDfromUsername(userName).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
-  friendID = getIDfromUsername(friendUsername).catch(_ => {res.status(500).send({data:{success: false, message: "Internal server error."}}); return;})
-  const friendId = db.one(
-    'SELECT FROM friendships WHERE (user_id_1 = {user_id_1} AND user_id_2 = {user_id_2}) OR (user_id_1 = {user_id_2} AND user_id_2 = {user_id_1}); ', {user_id_1: userName, user_id_2: friendUsername})
-  .catch(_ => {res.status(403).send({data:{success: false, message: "Friendship not found."}}); return;})
-  
-  try {
-    const rsvps = db.manyOrNone(
-      'SELECT event_id FROM rsvps WHERE user_id = $1',
-      [userID]
-    );
-
-    const ids = rsvps.map(r => r.event_id);
-
-    if (ids.length === 0) {
-      res.status(200).send({ data: { success: true, events: [] } });
-      return;
-    }
-
-    const events = db.many(
-      `SELECT * FROM events WHERE id = ANY($1::int[])`,
-      [ids]
-    );
-
-    const res_events = events.map(event => ({
-      name: event.name,
-      location: {
-        latitude: event.location.geometry.coordinates[1],
-        longitude: event.location.geometry.coordinates[0]
-      },
-      time: new Date(event.time).toISOString(),
-      duration: event.duration,
-      details: event.details,
-      description: event.description
-    }));
-
-    res.status(200).send({ data: { success: true, events: res_events } });
-    return;
-
-  } catch (e) {
-    res.locals.message = `Error getting RSVP events for user_id: ${uid}.`;
-    res.status(403).send({ data: { success: false, events: undefined } });
-    return;
-  }
+  const userName = req['data']['username'];
+  const friendUsername = req['data']['friendUsername'];
+  getIDfromUsername(userName)
+  .then( userID => {
+    getIDfromUsername(friendUsername).then( friendID => {
+      db.one(
+        'SELECT FROM friendships WHERE (user_id_1 = {user_id_1} AND user_id_2 = {user_id_2}) OR (user_id_1 = {user_id_2} AND user_id_2 = {user_id_1}); ', {user_id_1: userName, user_id_2: friendUsername}
+      ).then( _ => {
+        db.manyOrNone(
+          'SELECT event_id FROM rsvps WHERE user_id = $1',
+          [friendID]
+        ).then( rsvps => {
+          const ids = rsvps.map(r => r.event_id);
+          if (ids.length === 0) {
+            res.status(200).send({ data: { success: true, events: [] } });
+            return;
+          }
+          db.many(
+            `SELECT * FROM events WHERE id = ANY($1::int[])`,
+            [ids]
+          ).then(events => {
+            const res_events = events.map(event => ({
+              name: event.name,
+              location: {
+                latitude: event.location.geometry.coordinates[1],
+                longitude: event.location.geometry.coordinates[0]
+              },
+              time: new Date(event.time).toISOString(),
+              duration: event.duration,
+              details: event.details,
+              description: event.description
+            }));
+            res.status(200).send({ data: { success: true, events: res_events } });
+            return;
+          });
+        });
+      }).catch( _ => res.status(403).send({data:{success: false, message: "Not friends with user."}}) );
+    });
+  })
+  .catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
 });
 
 
