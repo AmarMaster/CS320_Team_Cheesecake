@@ -8,9 +8,7 @@ var logger = require('morgan');
 const jwt = require("jsonwebtoken");
 
 // PostgreSQL integration
-const pgp = require('pg-promise')(/* options */)
-//const db = require('./db.js');
-const db = pgp('postgres://zacharya:admin@localhost:5432/eventtracker-db');
+const db = require('./db.js');
  
 const getIDfromUsername = (username) => {
   return db.one(
