@@ -9,7 +9,9 @@ class APIService {
     private let baseURL = "http://localhost:3000"
     
     func fetchEvents() async throws -> [EventData] {
-        guard let url = URL(string: "\(baseURL)/getEventList") else {
+        // TODO:
+        // Properly insert the current coordinates and the desired radius
+        guard let url = URL(string: "\(baseURL)/getEventList?location=3.0,3.0&radius=3000000000.0") else {
             throw APIError.invalidURL
         }
         

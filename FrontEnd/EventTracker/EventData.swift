@@ -53,9 +53,21 @@ struct EventData: Identifiable, Codable {
         name = try container.decode(String.self, forKey: .name)
         description = try container.decode(String.self, forKey: .description)
         location = try container.decode(EventLocation.self, forKey: .location)
-        locationString = try container.decode(String.self, forKey: .locationString)
-        time = try container.decode(Date.self, forKey: .time)
-        duration = try container.decode(Int.self, forKey: .duration)
+        
+        // TODO:
+        // None of these decode properly. They are inconsistent between
+        // the backend code and the frontend code: locationString, time,
+        // and duration
+        
+        //try container.decode(String.self, forKey: .locationString)
+        locationString = "locationString is not in the damn database for some reason"
+        
+        //try container.decode(Date.self, forKey: .time)
+        time = Date.now
+        
+        //try container.decode(Int.self, forKey: .duration)
+        duration = 2
+        
         details = try container.decode(String.self, forKey: .details)
         adultOnly = try container.decodeIfPresent(Bool.self, forKey: .adultOnly) ?? false
         cost = try container.decodeIfPresent(Double.self, forKey: .cost) ?? 0
