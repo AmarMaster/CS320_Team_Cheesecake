@@ -16,23 +16,19 @@ struct ProfileView: View {
     @State private var profileImage: UIImage? = nil
     @State private var showSettingsSheet = false
     
-    @State private var events: [EventData] = [
-        EventData(
-            name: "Sample Event",
-            description: "This is a sample event",
-            coordinate: CLLocationCoordinate2D(latitude: 42.391155, longitude: -72.526711),
-            locationString: "UMass Amherst",
-            time: Date(),
-            durationHours: 2,
-            durationMinutes: 0,
-            details: "Sample event details",
-            adultOnly: false,
-            cost: 0,
-            owner_id: "1"
-        )
-    ]
+    @State private var hostedEvents: [EventData] = []
     @State private var rsvpEvents: [EventData] = []
+    @State private var favoriteEvents: [EventData] = []
     @State private var selectedEventType = 0 // 0: Hosted, 1: RSVP, 2: Favorite
+    
+    var currentEvents: [EventData] {
+        switch selectedEventType {
+        case 0: return hostedEvents
+        case 1: return rsvpEvents
+        case 2: return favoriteEvents
+        default: return hostedEvents
+        }
+    }
     @State private var shouldNavigateToLogin = false
     private let apiService = APIService()
     @ObservedObject private var userSession = UserSession.shared
@@ -108,12 +104,6 @@ struct ProfileView: View {
                             }
                             .foregroundColor(.white)
                             .font(.subheadline)
-//                            HStack {
-//                                Image(systemName: "phone")
-//                                Text("999 999 9999")
-//                            }
-//                            .foregroundColor(.white)
-//                            .font(.subheadline)
                         }
                         
                         // events section header with slider
@@ -129,6 +119,7 @@ struct ProfileView: View {
                                 HStack(spacing: 0) {
                                     Button("Hosted") {
                                         selectedEventType = 0
+                                        Task { await loadHostedEvents() }
                                     }
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 6)
@@ -138,6 +129,7 @@ struct ProfileView: View {
                                     
                                     Button("RSVP") {
                                         selectedEventType = 1
+                                        Task { await loadRSVPEvents() }
                                     }
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 6)
@@ -147,6 +139,7 @@ struct ProfileView: View {
                                     
                                     Button("Favorite") {
                                         selectedEventType = 2
+                                        Task { await loadFavoriteEvents() }
                                     }
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 6)
@@ -162,8 +155,8 @@ struct ProfileView: View {
                         .padding(.top, 20)
                         
                         VStack(spacing: 5) {
-                            ForEach(Array(events.enumerated()), id: \.offset) { index, event in
-                                NavigationLink(destination: EventInfoView(event: event, fixedName: fixedName, fixedEmail: fixedEmail, events: $events, eventIndex: index)) {
+                            ForEach(Array(currentEvents.enumerated()), id: \.offset) { index, event in
+                                NavigationLink(destination: EventInfoView(event: event, fixedName: fixedName, fixedEmail: fixedEmail, events: .constant(currentEvents), eventIndex: index)) {
                                     HStack(alignment: .top, spacing: 12) {
                                         // event image
                                         VStack {
@@ -213,8 +206,6 @@ struct ProfileView: View {
                                     .cornerRadius(16)
                                     .padding(.horizontal, 20)
                                 }
-                                
-                                
                             }
                         }
                         
@@ -224,7 +215,7 @@ struct ProfileView: View {
                             NavigationLink(destination: AddEventView(
                                 fixedName: fixedName,
                                 fixedEmail: fixedEmail,
-                                events: $events
+                                events: $hostedEvents
                             )) {
                                 Text("+ Add an Event")
                                     .padding()
@@ -246,6 +237,9 @@ struct ProfileView: View {
         }
         .navigationDestination(isPresented: $shouldNavigateToLogin) {
             LoginView(fixedName: "", fixedEmail: "")
+        }
+        .onAppear {
+            Task { await loadHostedEvents() }
         }
     }
     
@@ -312,6 +306,35 @@ struct ProfileView: View {
                 print("Failed to delete account: \(error)")
             }
         }
+    }
+    
+    private func loadHostedEvents() async {
+        // TODO: Implement API call for hosted events
+        hostedEvents = [EventData(
+            name: "My Hosted Event",
+            description: "Event I'm hosting",
+            coordinate: CLLocationCoordinate2D(latitude: 42.391155, longitude: -72.526711),
+            locationString: "UMass Amherst",
+            time: Date(),
+            durationHours: 2,
+            durationMinutes: 0,
+            details: "Hosted event details",
+            owner_id: userSession.currentUserId
+        )]
+    }
+    
+    private func loadRSVPEvents() async {
+        guard let userId = userSession.currentUserId else { return }
+        do {
+            rsvpEvents = try await apiService.fetchFilteredEvents(userID: userId)
+        } catch {
+            print("Failed to load RSVP events: \(error)")
+        }
+    }
+    
+    private func loadFavoriteEvents() async {
+        // TODO: Implement API call for favorite events
+        favoriteEvents = []
     }
 }
 

@@ -282,11 +282,18 @@ struct AddEventView: View {
                                     adultOnly: twentyoneplus,
                                     cost: cost,
                                     owner_id: userSession.currentUserId,
-                                    
                                     imageData: imageData
                                 )
-                                events.append(newEvent)
-                                dismiss()
+                                
+                                Task {
+                                    do {
+                                        let createdEvent = try await APIService().createEvent(newEvent, token: userSession.jwtToken ?? "")
+                                        events.append(createdEvent)
+                                        dismiss()
+                                    } catch {
+                                        showError = true
+                                    }
+                                }
                             }
                         }) {
                             Text("Add Event")

@@ -118,12 +118,12 @@ struct FriendListView: View {
     private func fetchFriends() {
         Task {
             do {
-                let friendNames = try await apiService.getAllFriends(username: "testuser")
+                let friendNames = try await apiService.getAllFriends(username: fixedName)
                 await MainActor.run {
                     friends = friendNames.map { Friend(name: $0, profileImage: nil) }
                 }
             } catch {
-                // Handle error silently for now
+                
             }
         }
     }
