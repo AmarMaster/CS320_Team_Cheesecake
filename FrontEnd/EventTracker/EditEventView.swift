@@ -232,7 +232,7 @@ struct EditEventView: View {
                                             }
                                         }
                                         .pickerStyle(WheelPickerStyle())
-                                        .frame(width: 80)
+                                        .frame(width: 240)
                                         
                                         Picker("Minutes", selection: $durationMinutes) {
                                             ForEach([0, 15, 30, 45], id: \.self) { minute in
