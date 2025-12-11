@@ -145,4 +145,4 @@ class APIViewModel: ObservableObject {
             self.errorMessage = error.localizedDescription
         }
     }
-}gi
+}

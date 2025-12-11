@@ -85,8 +85,9 @@ struct FriendProfileView: View {
                     
                     ScrollView {
                         VStack(spacing: 10) {
-                            ForEach(events) { event in
-                                VStack(alignment: .leading, spacing: 10) {
+                            ForEach(Array(events.enumerated()), id: \.offset) { index, event in
+                                NavigationLink(destination: EventInfoView(event: event, fixedName: fixedName, fixedEmail: fixedEmail, events: .constant(events), eventIndex: index)) {
+                                    VStack(alignment: .leading, spacing: 10) {
                                     Text(event.name)
                                         .foregroundColor(.white)
                                         .bold()
@@ -112,12 +113,13 @@ struct FriendProfileView: View {
                                     }
                                     .foregroundColor(.white)
                                     .font(.subheadline)
+                                    }
+                                    .padding()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color(UIColorFromRGB(0x312F2F)))
+                                    .cornerRadius(16)
+                                    .padding(.horizontal, 20)
                                 }
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color(UIColorFromRGB(0x312F2F)))
-                                .cornerRadius(16)
-                                .padding(.horizontal, 20)
                             }
                         }
                     }
