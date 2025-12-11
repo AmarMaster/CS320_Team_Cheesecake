@@ -10,6 +10,7 @@ class UserSession: ObservableObject {
     @Published var currentUsername: String?
     @Published var jwtToken: String?
     @Published var isLoggedIn: Bool = false
+    @Published var selectedEventDetails: EventData? = nil // Details for a single event
     
     static let shared = UserSession()
     
@@ -150,6 +151,33 @@ class APIService {
             throw APIError.serverError("Failed to create event")
         }
     }
+    
+    func fetchEventDetails(eventID: String) async throws -> EventData {
+        var components = URLComponents(string: "\(baseURL)/getEventData")!
+        components.queryItems = [
+            URLQueryItem(name: "eventID", value: "\(eventID)")
+        ]
+        
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+        
+        let (data, _) = try await URLSession.shared.data(from: url)
+        
+        let decoder = JSONDecoder()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        decoder.dateDecodingStrategy = .formatted(formatter)
+        
+        let response = try decoder.decode(AppJSResponse<EventGetData>.self, from: data)
+        
+        if response.data.success {
+            return response.data.event
+        } else {
+            throw APIError.serverError("Failed to fetch events")
+        }
+    }
+    // ------
     
     func getAllFriends(username: String) async throws -> [String] {
         guard let url = URL(string: "\(baseURL)/getAllFriends") else {
@@ -422,6 +450,116 @@ class APIService {
             throw APIError.serverError(response.data.message)
         }
     }
+    
+    func toggleRSVP(eventID: String) async throws -> String {
+            guard let url = URL(string: "\(baseURL)/toggleRSVP") else {
+                throw APIError.invalidURL
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            guard let userID = UserSession.shared.currentUserId,
+                  let jwt = UserSession.shared.jwtToken else {
+                throw APIError.serverError("User not logged in")
+            }
+            
+            let requestBody: [String: Any] = [
+                "data": [
+                    "userID": userID,
+                    "eventID": eventID,
+                    "rsvpStatus": 1 // Or your logic for RSVP status
+                ],
+                "auth": [
+                    "jwt": jwt
+                ]
+            ]
+            
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+            
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let response = try JSONDecoder().decode(AppJSResponse<FriendActionData>.self, from: data)
+            
+            if response.data.success {
+                return response.data.message
+            } else {
+                throw APIError.serverError(response.data.message)
+            }
+        }
+
+        func toggleFavorite(eventID: String) async throws -> String {
+            guard let url = URL(string: "\(baseURL)/toggleFavorite") else {
+                throw APIError.invalidURL
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            guard let userID = UserSession.shared.currentUserId,
+                  let jwt = UserSession.shared.jwtToken else {
+                throw APIError.serverError("User not logged in")
+            }
+            
+            let requestBody: [String: Any] = [
+                "data": [
+                    "userID": userID,
+                    "eventID": eventID
+                ],
+                "auth": [
+                    "jwt": jwt
+                ]
+            ]
+            
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+            
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let response = try JSONDecoder().decode(AppJSResponse<FriendActionData>.self, from: data)
+            
+            if response.data.success {
+                return response.data.message
+            } else {
+                throw APIError.serverError(response.data.message)
+            }
+        }
+
+        func toggleHosted(eventID: String) async throws -> String {
+            guard let url = URL(string: "\(baseURL)/toggleHosted") else {
+                throw APIError.invalidURL
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            guard let userID = UserSession.shared.currentUserId,
+                  let jwt = UserSession.shared.jwtToken else {
+                throw APIError.serverError("User not logged in")
+            }
+            
+            let requestBody: [String: Any] = [
+                "data": [
+                    "userID": userID,
+                    "eventID": eventID
+                ],
+                "auth": [
+                    "jwt": jwt
+                ]
+            ]
+            
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+            
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let response = try JSONDecoder().decode(AppJSResponse<FriendActionData>.self, from: data)
+            
+            if response.data.success {
+                return response.data.message
+            } else {
+                throw APIError.serverError(response.data.message)
+            }
+        }
+
 }
 
 struct AppJSResponse<T: Codable>: Codable {
@@ -434,6 +572,11 @@ struct EventListData: Codable {
 }
 
 struct EventCreateData: Codable {
+    let success: Bool
+    let event: EventData
+}
+
+struct EventGetData: Codable {
     let success: Bool
     let event: EventData
 }
