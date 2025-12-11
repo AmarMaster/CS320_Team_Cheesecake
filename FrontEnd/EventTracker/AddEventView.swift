@@ -12,6 +12,7 @@ struct AddEventView: View {
     var fixedEmail: String
     
     @State private var showError = false
+    @State private var errorMessage = ""
     @State private var canContinue = false
     
     @State private var name = ""
@@ -257,23 +258,35 @@ struct AddEventView: View {
                         }
                     }
                     if showError {
-                        Text("All fields are required.")
+                        Text(errorMessage)
                             .foregroundColor(.red)
                             .font(.body)
                             .padding(.horizontal, 20)
                     }
                     VStack {
                         Button(action: {
-                            if (name.isEmpty || details.isEmpty || description.isEmpty || location.isEmpty || pickedCoordinate == nil) {
+                            if name.isEmpty {
                                 showError = true
-                            }
-                            else if let coord = pickedCoordinate {
+                                errorMessage = "Event name is required."
+                            } else if details.isEmpty {
+                                showError = true
+                                errorMessage = "Details are required."
+                            } else if description.isEmpty {
+                                showError = true
+                                errorMessage = "Description is required."
+                            } else if location.isEmpty {
+                                showError = true
+                                errorMessage = "Location text is required."
+                            } else if pickedCoordinate == nil {
+                                showError = true
+                                errorMessage = "Tap a location on the map."
+                            } else {
                                 showError = false
                                 let imageData = eventImage?.jpegData(compressionQuality: 0.8)
                                 let newEvent = EventData(
                                     name: name,
                                     description: description,
-                                    coordinate: coord,
+                                    coordinate: pickedCoordinate!,
                                     locationString: location,
                                     time: time,
                                     durationHours: durationHours,

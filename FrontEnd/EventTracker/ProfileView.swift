@@ -309,18 +309,12 @@ struct ProfileView: View {
     }
     
     private func loadHostedEvents() async {
-        // TODO: Implement API call for hosted events
-        hostedEvents = [EventData(
-            name: "My Hosted Event",
-            description: "Event I'm hosting",
-            coordinate: CLLocationCoordinate2D(latitude: 42.391155, longitude: -72.526711),
-            locationString: "UMass Amherst",
-            time: Date(),
-            durationHours: 2,
-            durationMinutes: 0,
-            details: "Hosted event details",
-            owner_id: userSession.currentUserId
-        )]
+        guard let userId = userSession.currentUserId else { return }
+        do {
+            hostedEvents = try await apiService.fetchFilteredEvents(userID: userId)
+        } catch {
+            print("Failed to load hosted events: \(error)")
+        }
     }
     
     private func loadRSVPEvents() async {

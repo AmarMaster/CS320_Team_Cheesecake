@@ -115,11 +115,18 @@ class APIService {
             throw APIError.invalidURL
         }
         
+        guard let userID = UserSession.shared.currentUserId,
+              let jwt = UserSession.shared.jwtToken else {
+            print("DEBUG: User not logged in - userID: \(UserSession.shared.currentUserId ?? "nil"), jwt: \(UserSession.shared.jwtToken ?? "nil")")
+            throw APIError.serverError("User not logged in")
+        }
+        
+        print("DEBUG: Creating event with userID: \(userID), jwt: \(jwt.prefix(20))...")
+        
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let userID = UserSession.shared.currentUserId ?? "1"
         let formatter = ISO8601DateFormatter()
         
         let requestBody = [
@@ -137,12 +144,17 @@ class APIService {
                     "description": event.description
                 ] as [String: Any]
             ] as [String: Any],
-            "auth": ["jwt": UserSession.shared.jwtToken ?? ""]
+            "auth": ["jwt": jwt]
         ] as [String: Any]
         
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, httpResponse) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = httpResponse as? HTTPURLResponse {
+            print("DEBUG: HTTP Status: \(httpResponse.statusCode)")
+        }
+        
         let response = try JSONDecoder().decode(AppJSResponse<EventCreateData>.self, from: data)
         
         if response.data.success {

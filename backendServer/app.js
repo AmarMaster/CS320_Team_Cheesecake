@@ -12,12 +12,12 @@ const db = require('./db.js');
  
 const getIDfromUsername = (username) => {
   return db.one(
-    'SELECT id FROM users WHERE username = {username}', {username: username}
+    'SELECT id FROM users WHERE username = $1', [username]
   )
 }
 const getUsernamefromID = (id) => {
   return db.one(
-    'SELECT username FROM users WHERE id = {id}', {id: id}
+    'SELECT username FROM users WHERE id = $1', [id]
   )
 }
 
@@ -62,16 +62,14 @@ app.post('/login', async (req, res) => {
     return res.status(401).send({ data: { success: false, message: "Missing username or password.", jwt: '' } });
   }
   try {
-    // Get the user ID from username
-    const userId = await db.one('SELECT id FROM users WHERE username = {username}', { username: username });
-    // Get the stored password to compare
-    const storedPassword = await db.one('SELECT password FROM users WHERE username = {username}', { username: username });
+    // Get the user data
+    const user = await db.one('SELECT id, password FROM users WHERE username = $1', [username]);
     // Validate password
-    if (!storedPassword || storedPassword !== password) {
+    if (!user.password || user.password !== password) {
       return res.status(401).send({ data: { success: false, message: "Incorrect Username or Password.", jwt: '' } });
     }
     // Generate jwt auth token
-    const token = jwt.sign({ userId: userId }, "secretKey", { expiresIn: "2h" });
+    const token = jwt.sign({ userId: user.id }, "secretKey", { expiresIn: "2h" });
     return res.status(200).send({ data: { success: true, message: "Logged In.", jwt: token } });
   } catch (err) {
     // user not found or db error
@@ -108,14 +106,14 @@ app.post('/createAccount', async (req, res) => {
   }
   try {
     // Check if user/email already exists
-    const existing = await db.many('SELECT * FROM users WHERE username = {name} OR email = {email}', { name, email });
+    const existing = await db.manyOrNone('SELECT * FROM users WHERE username = $1 OR email = $2', [name, email]);
     if (existing && existing.length > 0) {
       return res.status(403).send({ data: { success: false, message: "Username or email already taken.", jwt: '' } });
     }
     // Add user to db
-    await db.none('INSERT INTO Users (name, password, email) VALUES ({name}, {pass}, {email});', { name, pass: password, email });
+    await db.none('INSERT INTO users (username, password, email, role) VALUES ($1, $2, $3, $4)', [name, password, email, 'user']);
     // Retrieve the user id for the new account
-    const user = await db.one('SELECT * FROM users WHERE username = {name}', { name });
+    const user = await db.one('SELECT * FROM users WHERE username = $1', [name]);
     // Generate jwt auth token
     const token = jwt.sign({ userId: user.id }, "secretKey", { expiresIn: "2h" });
     return res.status(200).send({ data: { success: true, message: "Account Created.", jwt: token } });
@@ -254,7 +252,7 @@ app.get('/getEventList', (req, res) => {
   // ------------------------------------------------------------
   // No filters provided → reject.
   // ------------------------------------------------------------
-  if (!uid && !latitude && !datetime && twentyoneplus === null) {
+  if (!uid && !latitude && !datetime && twentyoneplus === null && cost === null) {
     res.locals.message = `No valid filters provided.`;
     res.status(400).send({ data: { success: false, events: undefined } });
     return;
@@ -729,10 +727,10 @@ app.post('/changePassword', (req, res) => {
   const userPass = req['data']['password'];
   const newPass = req['data']['newPassword'];
   db.one(
-    'SELECT * FROM users WHERE username = {username}', {username: userName}, user => user.password   
-  ).then( gotPass => {
-    if (gotPass === userPass){
-      db.none('UPDATE users SET password = {newPassword} WHERE username = {username}', {newPassword: newPass, username: userName})
+    'SELECT password FROM users WHERE username = $1', [userName]
+  ).then( result => {
+    if (result.password === userPass){
+      db.none('UPDATE users SET password = $1 WHERE username = $2', [newPass, userName])
       .then( _ => res.status(200).send({data:{success: true, message: "Password updated."}}))
       .catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
     } else {
