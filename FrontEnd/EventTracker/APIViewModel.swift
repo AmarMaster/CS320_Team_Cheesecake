@@ -14,6 +14,8 @@ class APIViewModel: ObservableObject {
     @Published var events: [EventData] = []
     @Published var errorMessage: String?
     @Published var isLoading = false
+    
+    @Published var selectedEventDetails: EventData? = nil
 
     private let api = APIService()
 
@@ -52,6 +54,20 @@ class APIViewModel: ObservableObject {
                 cost: cost
             )
             self.events = filtered
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+    
+    func fetchEventDetails(_ eventID: String) async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let eventDetails = try await api.fetchEventDetails(eventID: eventID)
+            self.selectedEventDetails = eventDetails
         } catch {
             self.errorMessage = error.localizedDescription
         }
@@ -102,4 +118,31 @@ class APIViewModel: ObservableObject {
         
         isLoading = false
     }
-}
+    
+    func toggleFavorite(eventID: String) async {
+        do {
+            let message = try await api.toggleFavorite(eventID: eventID)
+            print("Toggle Favorite: \(message)")
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+    
+    func toggleRSVP(eventID: String) async {
+        do {
+            let message = try await api.toggleRSVP(eventID: eventID)
+            print("Toggle RSVP: \(message)")
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+    
+    func toggleHosted(eventID: String) async {
+        do {
+            let message = try await api.toggleHosted(eventID: eventID)
+            print("Toggle Hosted: \(message)")
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+}gi
