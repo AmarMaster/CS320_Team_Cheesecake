@@ -72,4 +72,34 @@ class APIViewModel: ObservableObject {
         
         isLoading = false
     }
+    
+    func updateEvent(_ event: EventData, token: String) async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let updatedEvent = try await api.updateEvent(event, token: token)
+            if let index = events.firstIndex(where: { $0.id == updatedEvent.id }) {
+                events[index] = updatedEvent
+            }
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+        
+        isLoading = false
+    }
+    
+    func deleteEvent(eventID: String, token: String) async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            _ = try await api.deleteEvent(eventID: eventID, token: token)
+            events.removeAll { String($0.id ?? 0) == eventID }
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+        
+        isLoading = false
+    }
 }

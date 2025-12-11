@@ -28,11 +28,14 @@ struct ProfileView: View {
             details: "Sample event details",
             adultOnly: false,
             cost: 0,
-            owner_id: 1
+            owner_id: "1"
         )
     ]
     @State private var rsvpEvents: [EventData] = []
     @State private var selectedEventType = 0 // 0: Hosted, 1: RSVP, 2: Favorite
+    @State private var shouldNavigateToLogin = false
+    private let apiService = APIService()
+    @ObservedObject private var userSession = UserSession.shared
     
     var body: some View {
         NavigationStack {
@@ -239,10 +242,11 @@ struct ProfileView: View {
 
                     }
                 .navigationBarHidden(true)
-
             }
         }
-
+        .navigationDestination(isPresented: $shouldNavigateToLogin) {
+            LoginView(fixedName: "", fixedEmail: "")
+        }
     }
     
     private func eventLocationView(_ locationText: String) -> some View {
@@ -282,15 +286,32 @@ struct ProfileView: View {
     }
     
     private func handleLogout() {
-        // Handle logout logic
+        userSession.logout()
+        shouldNavigateToLogin = true
     }
     
     private func handleChangePassword(_ newPassword: String) {
-        // Handle change password logic
+        Task {
+            do {
+                let message = try await apiService.changePassword(username: userSession.currentUsername ?? fixedName, password: "currentPassword", newPassword: newPassword)
+                print("Password changed: \(message)")
+            } catch {
+                print("Failed to change password: \(error)")
+            }
+        }
     }
     
     private func handleDeleteAccount() {
-        // Handle delete account logic
+        Task {
+            do {
+                let message = try await apiService.deleteAccount(username: userSession.currentUsername ?? fixedName)
+                print("Account deleted: \(message)")
+                userSession.logout()
+                shouldNavigateToLogin = true
+            } catch {
+                print("Failed to delete account: \(error)")
+            }
+        }
     }
 }
 

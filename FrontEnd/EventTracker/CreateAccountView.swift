@@ -14,6 +14,9 @@ struct CreateAccountView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var canContinue = false
+    @State private var isLoading = false
+    private let apiService = APIService()
+    @ObservedObject private var userSession = UserSession.shared
     
     var body: some View {
         NavigationStack {
@@ -70,27 +73,17 @@ struct CreateAccountView: View {
                     
                     // Continue button
                     Button(action: {
-                        if name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty {
-                            showError = true
-                            errorMessage = "All fields are required."
-                        } else if !isValidPassword(password) {
-                            showError = true
-                            errorMessage = "Password must be at least 8 characters and contain a special character (!@#$%^&*)."
-                        } else if password != confirmPassword {
-                            showError = true
-                            errorMessage = "Passwords do not match."
-                        } else {
-                            showError = false
-                            canContinue = true
-                        }
+                        createAccount()
                     }) {
-                        Text("Create Account")
+                        Text(isLoading ? "Creating..." : "Create Account")
                             .padding()
                             .frame(maxWidth: .infinity)
-                            .background(Color(UIColorFromRGB(0xFF5934)))
+                            .background(isLoading ? Color.gray : Color(UIColorFromRGB(0xFF5934)))
                             .foregroundColor(.white)
                             .cornerRadius(16)
-                        }.padding(.horizontal, 20)
+                        }
+                        .disabled(isLoading)
+                        .padding(.horizontal, 20)
                         .padding(.top, 29)
                         .padding(.bottom, 10)
                     
@@ -119,6 +112,43 @@ struct CreateAccountView: View {
             }
         }
 
+    }
+    
+    private func createAccount() {
+        if name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty {
+            showError = true
+            errorMessage = "All fields are required."
+        } else if !isValidPassword(password) {
+            showError = true
+            errorMessage = "Password must be at least 8 characters and contain a special character (!@#$%^&*)."
+        } else if password != confirmPassword {
+            showError = true
+            errorMessage = "Passwords do not match."
+        } else {
+            showError = false
+            isLoading = true
+            
+            Task {
+                do {
+                    let response = try await apiService.createAccount(name: name, password: password, email: email)
+                    await MainActor.run {
+                        // User ID and token are already set in APIService.createAccount()
+                        isLoading = false
+                        canContinue = true
+                    }
+                } catch {
+                    await MainActor.run {
+                        isLoading = false
+                        showError = true
+                        errorMessage = "Failed to create account. Please try again."
+                    }
+                }
+            }
+        }
+    }
+    
+    private func isValidPassword(_ password: String) -> Bool {
+        return password.count >= 8 && password.contains(where: { "!@#$%^&*".contains($0) })
     }
 }
 

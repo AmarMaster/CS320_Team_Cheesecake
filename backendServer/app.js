@@ -313,7 +313,8 @@ app.get('/getEventList', (req, res) => {
         time,
         duration,
         details,
-        description
+        description,
+        owner_id
       FROM events
       WHERE 1=1
     `;
@@ -354,7 +355,8 @@ app.get('/getEventList', (req, res) => {
           time: new Date(event.time).toISOString(),
           duration: event.duration,
           details: event.details,
-          description: event.description
+          description: event.description,
+          owner_id: event.owner_id
         }));
       }).then(res_events => {
         res.status(200).send({ data: { success: true, events: res_events } });

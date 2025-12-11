@@ -17,6 +17,7 @@ struct FriendListView: View {
     
     @State private var searchText = ""
     @State private var friends: [Friend] = []
+    private let apiService = APIService()
     
     var filteredFriends: [Friend] {
         if searchText.isEmpty {
@@ -115,34 +116,16 @@ struct FriendListView: View {
     }
     
     private func fetchFriends() {
-        guard let url = URL(string: "http://localhost:3000/getAllFriends") else { return }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let requestBody = ["data": ["username": fixedName]]
-        
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        } catch { return }
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let data = data, error == nil else { return }
-            
+        Task {
             do {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let responseData = json["data"] as? [String: Any],
-                   let success = responseData["success"] as? Bool,
-                   success == true,
-                   let friendNames = responseData["friends"] as? [String] {
-                    
-                    DispatchQueue.main.async {
-                        friends = friendNames.map { Friend(name: $0, profileImage: nil) }
-                    }
+                let friendNames = try await apiService.getAllFriends(username: "testuser")
+                await MainActor.run {
+                    friends = friendNames.map { Friend(name: $0, profileImage: nil) }
                 }
-            } catch { }
-        }.resume()
+            } catch {
+                // Handle error silently for now
+            }
+        }
     }
 }
 
