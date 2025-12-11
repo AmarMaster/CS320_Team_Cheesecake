@@ -51,6 +51,32 @@ class APIService {
         }
     }
     
+    func fetchHostedEvents(ownerID: String) async throws -> [EventData] {
+        var components = URLComponents(string: "\(baseURL)/getEventList")!
+        components.queryItems = [
+            URLQueryItem(name: "ownerID", value: ownerID),
+            URLQueryItem(name: "_t", value: String(Date().timeIntervalSince1970))
+        ]
+        
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(AppJSResponse<EventListData>.self, from: data)
+        
+        print("API Response success: \(response.data.success)")
+        print("API Response events count: \(response.data.events.count)")
+        
+        if response.data.success {
+            return response.data.events
+        } else {
+            throw APIError.serverError("Failed to fetch hosted events")
+        }
+    }
+    
     func fetchFilteredEvents(
         userID: String? = nil,
         location: (lat: Double, lon: Double)? = nil,
@@ -131,7 +157,7 @@ class APIService {
         
         let requestBody = [
             "data": [
-                "userID": userID,
+                "userID": Int(userID) ?? 1,
                 "event": [
                     "name": event.name,
                     "location": [
@@ -139,7 +165,7 @@ class APIService {
                         "longitude": event.location.longitude
                     ],
                     "time": formatter.string(from: event.time),
-                    "duration": event.durationHours * 3600 + event.durationMinutes * 60,
+                    "duration": "\(event.durationHours) hours \(event.durationMinutes) minutes",
                     "details": event.details,
                     "description": event.description
                 ] as [String: Any]
@@ -153,6 +179,9 @@ class APIService {
         
         if let httpResponse = httpResponse as? HTTPURLResponse {
             print("DEBUG: HTTP Status: \(httpResponse.statusCode)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("DEBUG: Response: \(responseString)")
+            }
         }
         
         let response = try JSONDecoder().decode(AppJSResponse<EventCreateData>.self, from: data)

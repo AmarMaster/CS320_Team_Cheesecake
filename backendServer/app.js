@@ -218,6 +218,7 @@ app.get('/getEventList', (req, res) => {
       }
   */
   const uid = req.query.userID;
+  const ownerID = req.query.ownerID;
 
   let latitude = null;
   let longitude = null;
@@ -252,16 +253,46 @@ app.get('/getEventList', (req, res) => {
   // ------------------------------------------------------------
   // No filters provided → reject.
   // ------------------------------------------------------------
-  if (!uid && !latitude && !datetime && twentyoneplus === null && cost === null) {
+  if (!uid && !ownerID && !latitude && !datetime && twentyoneplus === null && cost === null) {
     res.locals.message = `No valid filters provided.`;
     res.status(400).send({ data: { success: false, events: undefined } });
     return;
   }
 
   // =====================================================================
+  // OWNER MODE (get events owned by user)
+  // =====================================================================
+  if (ownerID) {
+    try {
+      db.manyOrNone(
+        'SELECT name, ST_Y(location) AS latitude, ST_X(location) AS longitude, time, duration, details, description, owner_id FROM events WHERE owner_id = $1',
+        [ownerID]
+      ).then(events => {
+        const res_events = events.map(event => ({
+          name: event.name,
+          location: {
+            latitude: event.latitude,
+            longitude: event.longitude
+          },
+          time: new Date(event.time).toISOString(),
+          duration: event.duration,
+          details: event.details,
+          description: event.description,
+          owner_id: event.owner_id
+        }));
+        res.status(200).send({ data: { success: true, events: res_events } });
+        return;
+      });
+    } catch (e) {
+      res.locals.message = `Error getting owned events for owner_id: ${ownerID}.`;
+      res.status(403).send({ data: { success: false, events: undefined } });
+      return;
+    }
+  }
+  // =====================================================================
   // USER RSVP MODE (takes priority)
   // =====================================================================
-  if (uid) {
+  else if (uid) {
 
     try {
       db.manyOrNone(
@@ -404,25 +435,33 @@ app.post('/createEvent', (req, res) => {
       }
   */
 
-  db.one(
-    'INSERT INTO events (name, location, time, duration, details, description, owner_id) VALUES ({name}, ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326), {time}, {duration}, {details}, {description}, {owner_id}); ',
-    {
-      name: req['data']['event']['name'],
-      longitude: req['data']['event']['location']['longitude'],
-      latitude: req['data']['event']['location']['latitude'],
-      time: req['data']['event']['time'],
-      duration: req['data']['event']['duration'],
-      details: req['data']['event']['details'],
-      description: req['data']['event']['description'],
-      owner_id: req['data']['userID']
-    }
-  ).then( _ => {
+  // First reset the sequence to avoid duplicate key errors
+  db.one("SELECT setval('events_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM events), false)")
+    .then(() => {
+      return db.one(
+        'INSERT INTO events (name, location, time, duration, details, description, owner_id) VALUES ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326), $4, $5::interval, $6, $7, $8) RETURNING id, name, ST_Y(location) as latitude, ST_X(location) as longitude, time, duration, details, description, owner_id',
+        [
+          req['data']['event']['name'],
+          req['data']['event']['location']['longitude'],
+          req['data']['event']['location']['latitude'],
+          req['data']['event']['time'],
+          req['data']['event']['duration'],
+          req['data']['event']['details'],
+          req['data']['event']['description'],
+          req['data']['userID']
+        ]
+      );
+    })
+    .then( result => {
       res.status(200).send({data:{success: true, event: req['data']['event']}});
       return;
     }
-  ).catch( _ => {
-      res.locals.message = `Error creating event.`;
-      res.status(403).send({data:{success: false, event: undefined}});
+    ).catch( err => {
+      console.error('Error creating event:', err);
+      console.error('Request data:', JSON.stringify(req.data, null, 2));
+      console.error('Event data:', JSON.stringify(req['data']['event'], null, 2));
+      res.locals.message = `Error creating event: ${err.message}`;
+      res.status(403).send({data:{success: false, event: undefined, error: err.message}});
       return;
     }
   );

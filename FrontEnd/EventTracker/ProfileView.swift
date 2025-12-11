@@ -154,8 +154,9 @@ struct ProfileView: View {
                         }
                         .padding(.top, 20)
                         
-                        VStack(spacing: 5) {
-                            ForEach(Array(currentEvents.enumerated()), id: \.offset) { index, event in
+                        ScrollView {
+                            VStack(spacing: 5) {
+                                ForEach(Array(currentEvents.enumerated()), id: \.offset) { index, event in
                                 NavigationLink(destination: EventInfoView(event: event, fixedName: fixedName, fixedEmail: fixedEmail, events: .constant(currentEvents), eventIndex: index)) {
                                     HStack(alignment: .top, spacing: 12) {
                                         // event image
@@ -208,6 +209,7 @@ struct ProfileView: View {
                                 }
                             }
                         }
+                        }
                         
                         Spacer()
                         // add event button
@@ -239,7 +241,11 @@ struct ProfileView: View {
             LoginView(fixedName: "", fixedEmail: "")
         }
         .onAppear {
+            selectedEventType = 0
             Task { await loadHostedEvents() }
+        }
+        .refreshable {
+            await loadHostedEvents()
         }
     }
     
@@ -309,9 +315,17 @@ struct ProfileView: View {
     }
     
     private func loadHostedEvents() async {
-        guard let userId = userSession.currentUserId else { return }
+        guard let userId = userSession.currentUserId else { 
+            print("No user ID found")
+            return 
+        }
+        print("Loading hosted events for user ID: \(userId)")
         do {
-            hostedEvents = try await apiService.fetchFilteredEvents(userID: userId)
+            hostedEvents = try await apiService.fetchHostedEvents(ownerID: userId)
+            print("Loaded \(hostedEvents.count) hosted events")
+            for event in hostedEvents {
+                print("Event: \(event.name) at \(event.time)")
+            }
         } catch {
             print("Failed to load hosted events: \(error)")
         }
