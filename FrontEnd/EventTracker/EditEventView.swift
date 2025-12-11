@@ -29,6 +29,8 @@ struct EditEventView: View {
     
     @Binding var events: [EventData]
     @Environment(\.dismiss) var dismiss
+    @StateObject private var apiViewModel = APIViewModel()
+    @ObservedObject private var userSession = UserSession.shared
     
     @State private var pickedCoordinate: CLLocationCoordinate2D?
     @State private var region: MKCoordinateRegion
@@ -307,10 +309,16 @@ struct EditEventView: View {
                                     owner_id: events[eventIndex].owner_id,
                                     imageData: imageData
                                 )
-                                if eventIndex < events.count {
-                                    events[eventIndex] = updatedEvent
+                                
+                                Task {
+                                    await apiViewModel.updateEvent(updatedEvent, token: "")
+                                    if apiViewModel.errorMessage == nil {
+                                        if eventIndex < events.count {
+                                            events[eventIndex] = updatedEvent
+                                        }
+                                        dismiss()
+                                    }
                                 }
-                                dismiss()
                             }
                         }) {
                             Text("Update Event")

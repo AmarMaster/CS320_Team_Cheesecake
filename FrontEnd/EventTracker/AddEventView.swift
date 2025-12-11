@@ -29,6 +29,7 @@ struct AddEventView: View {
     
     @Binding var events: [EventData]
     @Environment(\.dismiss) var dismiss
+    @ObservedObject private var userSession = UserSession.shared
     
     @State private var pickedCoordinate: CLLocationCoordinate2D? = nil
     @State private var region = MKCoordinateRegion(
@@ -280,7 +281,8 @@ struct AddEventView: View {
                                     details: details,
                                     adultOnly: twentyoneplus,
                                     cost: cost,
-                                    owner_id: 1,
+                                    owner_id: userSession.currentUserId,
+                                    
                                     imageData: imageData
                                 )
                                 events.append(newEvent)

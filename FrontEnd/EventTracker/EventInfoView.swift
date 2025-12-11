@@ -14,9 +14,7 @@ struct EventInfoView: View {
     let eventIndex: Int
     
     @State private var region: MKCoordinateRegion
-    
-    // user ID get from authentication
-    private let currentUserId = 1
+    @ObservedObject private var userSession = UserSession.shared
     
     
     init(event: EventData, fixedName: String, fixedEmail: String, events: Binding<[EventData]>, eventIndex: Int) {
@@ -195,7 +193,7 @@ struct EventInfoView: View {
                         
                         // rsvp
                         Button(action: {
-                            
+                            // TODO: Implement RSVP toggle
                         }) {
                             Text("RSVP")
                                 .padding()
@@ -208,13 +206,29 @@ struct EventInfoView: View {
                         .padding(.top, 15)
                         
                         
-                        // edit - only show if user owns the event
-                        if event.owner_id == currentUserId {
+                        // edit and delete - only show if user owns the event
+                        if event.owner_id == userSession.currentUserId {
                             NavigationLink(destination: EditEventView(fixedName: fixedName, fixedEmail: fixedEmail, events: $events, eventIndex: eventIndex)) {
                                 Text("Edit Event")
                                     .padding()
                                     .frame(maxWidth: .infinity)
                                     .background(Color(UIColorFromRGB(0xFF5934)))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(16)
+                            }
+                            .padding(.horizontal, 20)
+                            
+                            Button(action: {
+                                Task {
+                                    if let eventId = event.id, let token = userSession.currentUserId {
+                                        // TODO: Call delete API
+                                    }
+                                }
+                            }) {
+                                Text("Delete Event")
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.red)
                                     .foregroundColor(.white)
                                     .cornerRadius(16)
                             }
