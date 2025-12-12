@@ -157,16 +157,17 @@ app.get('/getEventData', (req, res) => {
     return;
   }
   db.one( // get the event
-    'SELECT * FROM events WHERE id = {id}', {id: eid}
+    'SELECT id, name, ST_Y(location) as latitude, ST_X(location) as longitude, location, time, duration, details, description FROM events WHERE id = $1', [eid]
   ).then( event => {
       res.status(200).send(
         {data:
           {success: true, event: 
             { 
+              'id': event.id,
               'name': event.name, 
               'location': {
-                'latitude': event.location["geometry"]["coordinates"][1],
-                'longitude': event.location["geometry"]["coordinates"][0]
+                'latitude': event.location.coordinates ? event.location.coordinates[1] : event.latitude,
+                'longitude': event.location.coordinates ? event.location.coordinates[0] : event.longitude
               },
               'time': new Date(event.time).toISOString(),
               'duration': event.duration,
@@ -265,10 +266,11 @@ app.get('/getEventList', (req, res) => {
   if (ownerID) {
     try {
       db.manyOrNone(
-        'SELECT name, ST_Y(location) AS latitude, ST_X(location) AS longitude, time, duration, details, description, owner_id FROM events WHERE owner_id = $1',
+        'SELECT id, name, ST_Y(location) AS latitude, ST_X(location) AS longitude, time, duration, details, description, owner_id FROM events WHERE owner_id = $1',
         [ownerID]
       ).then(events => {
         const res_events = events.map(event => ({
+          id: event.id,
           name: event.name,
           location: {
             latitude: event.latitude,
@@ -469,52 +471,44 @@ app.post('/createEvent', (req, res) => {
 
 // User edits or delete event, returns the updated event
 app.post('/changeEvent', (req, res) => {
-  /*
-  req = {
-    data: {
-      userID: String
-      eventID: String
-      event: Event
-    }
-    auth: {
-      jwt: String
-    }
-  }
-
-  res = {
-    data: {
-      success: Boolean,
-      event: Event
-    }
+  const token = req.body.auth && req.body.auth.jwt;
+  if (!token) {
+    return res.status(401).send({ data: { success: false, message: "No token provided." } });
   }
   
-  Event = {
-        name: String,
-        location: {
-            latitude: Float,
-            longitude: Float
-          },
-        time: "YYYY-MM-DDTHH:MM:SS",
-        duration: Integer,
-        details: String,
-        description: String
-      }
-  */
-
-  db.none("UPDATE events SET name = {name}, location = ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326), time = {time}, duration = {duration}, details = {details}, description = {description} WHERE id = {event_id} AND owner_id = {owner_id}; ",
-    {
-      name: req['data']['event']['name'],
-      longitude: req['data']['event']['location']['longitude'],
-      latitude: req['data']['event']['location']['latitude'],
-      time: req['data']['event']['time'],
-      duration: req['data']['event']['duration'],
-      details: req['data']['event']['details'],
-      description: req['data']['event']['description'],
-      event_id: req['data']['eventID'],
-      owner_id: req['data']['userID']
+  let userId;
+  try {
+    const decoded = jwt.verify(token, "secretKey");
+    userId = decoded.userId;
+  } catch (err) {
+    return res.status(403).send({ data: { success: false, message: "Invalid token." } });
+  }
+  
+  db.oneOrNone('SELECT owner_id FROM events WHERE id = $1', [req.data.eventID])
+  .then(event => {
+    if (!event) {
+      return res.status(404).send({ data: { success: false, message: "Event not found." } });
     }
-  ).then( _ => {
-      res.status(200).send({data:{success: true, event: req['data']['event']}});
+    if (event.owner_id !== parseInt(userId)) {
+      return res.status(403).send({ data: { success: false, message: "Not authorized to edit this event." } });
+    }
+    
+    return db.none("UPDATE events SET name = $1, location = ST_SetSRID(ST_MakePoint($2, $3), 4326), time = $4, duration = ($5 || ' seconds')::interval, details = $6, description = $7 WHERE id = $8 AND owner_id = $9",
+      [
+        req['data']['event']['name'],
+        req['data']['event']['location']['longitude'],
+        req['data']['event']['location']['latitude'],
+        req['data']['event']['time'],
+        req['data']['event']['duration'],
+        req['data']['event']['details'],
+        req['data']['event']['description'],
+        req['data']['eventID'],
+        userId
+      ]
+    );
+  })
+  .then(() => {
+    res.status(200).send({data:{success: true, event: req['data']['event']}});
       return;
     }
   ).catch( _ => {
@@ -555,17 +549,17 @@ app.post('/deleteEvent', (req, res) => {
 
   // First check if event exists and user is the owner
   db.one(
-    'SELECT owner_id FROM events WHERE id = {id}',
-    { id: eventID }
+    'SELECT owner_id FROM events WHERE id = $1',
+    [eventID]
   ).then(event => {
-    if (event.owner_id !== userID) {
+    if (event.owner_id !== parseInt(userID)) {
       return res.status(403).send({ data: { success: false, message: "You are not authorized to delete this event." } });
     }
 
     // Delete the event
     db.none(
-      'DELETE FROM events WHERE id = {id}',
-      { id: eventID }
+      'DELETE FROM events WHERE id = $1',
+      [eventID]
     ).then(() => {
       res.status(200).send({ data: { success: true, message: "Event deleted successfully." } });
     }).catch(err => {
@@ -610,8 +604,8 @@ app.post('/toggleFavorite', (req, res) => {
 
   // Check if event exists
   db.oneOrNone(
-    'SELECT id FROM events WHERE id = {id}',
-    { id: eventID }
+    'SELECT id FROM events WHERE id = $1',
+    [eventID]
   ).then(event => {
     if (!event) {
       return res.status(404).send({ data: { success: false, message: "Event not found." } });

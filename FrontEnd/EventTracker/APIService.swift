@@ -67,8 +67,7 @@ class APIService {
         let (data, _) = try await URLSession.shared.data(for: request)
         let response = try JSONDecoder().decode(AppJSResponse<EventListData>.self, from: data)
         
-        print("API Response success: \(response.data.success)")
-        print("API Response events count: \(response.data.events.count)")
+
         
         if response.data.success {
             return response.data.events
@@ -425,7 +424,11 @@ class APIService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let userID = UserSession.shared.currentUserId ?? "1"
+        guard let userID = UserSession.shared.currentUserId,
+              let jwt = UserSession.shared.jwtToken else {
+            throw APIError.serverError("User not logged in")
+        }
+        
         let formatter = ISO8601DateFormatter()
         
         let requestBody = [
@@ -444,16 +447,29 @@ class APIService {
                     "description": event.description
                 ] as [String: Any]
             ] as [String: Any],
-            "auth": ["jwt": UserSession.shared.jwtToken ?? ""]
+            "auth": ["jwt": jwt]
         ] as [String: Any]
         
+        print("DEBUG: Update request body: \(requestBody)")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let response = try JSONDecoder().decode(AppJSResponse<EventCreateData>.self, from: data)
+        let (data, httpResponse) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = httpResponse as? HTTPURLResponse {
+            print("DEBUG: Update HTTP Status: \(httpResponse.statusCode)")
+        }
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("DEBUG: Update Response: \(responseString)")
+        }
+        
+        struct SimpleResponse: Codable {
+            let success: Bool
+        }
+        
+        let response = try JSONDecoder().decode(AppJSResponse<SimpleResponse>.self, from: data)
         
         if response.data.success {
-            return response.data.event
+            return event
         } else {
             throw APIError.serverError("Failed to update event")
         }
