@@ -898,10 +898,17 @@ app.post('/getAllFriends', (req, res) => {
   */
 
   const userName = req['data']['username'];
+  if (!userName) {
+    return res.status(400).send({ data: { success: false, message: "Missing username." } });
+  }
   getIDfromUsername(userName)
-  .then(userID => {
-    db.manyOrNone('SELECT * FROM friendships WHERE user_id_1 = {user_id_1} OR user_id_2 = {user_id_1}; ', {user_id_1: userID})
+  .then(userResult => {
+    const userID = userResult.id;
+    db.manyOrNone('SELECT * FROM friendships WHERE user_id_1 = $1 OR user_id_2 = $1', [userID])
     .then( gotPass => {
+      if (gotPass.length === 0) {
+        return res.status(200).send({data:{success: true, message: "Friends retrieved.", friends: []}});
+      }
       const friendList = gotPass.map( f => {
         if (f.user_id_1 === userID){
           return f.user_id_2;
@@ -909,16 +916,12 @@ app.post('/getAllFriends', (req, res) => {
           return f.user_id_1;
         }
       });
-      Promise.all(friendList.map(id => new Promise((resolve, reject) => {
-        getUsernamefromID(id)
-        .then( usernameObj => resolve(usernameObj))
-        .catch( _ => reject());
-      })))
+      Promise.all(friendList.map(id => getUsernamefromID(id)))
       .then( friendUsernames => 
-        res.status(200).send({data:{success: true, message: "Friends retrieved.", friends: friendUsernames}})
-      ).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
-    }).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
-  }).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}))
+        res.status(200).send({data:{success: true, message: "Friends retrieved.", friends: friendUsernames.map(u => u.username)}})
+      ).catch(err => { console.error('Error getting usernames:', err); res.status(500).send({data:{success: false, message: "Internal server error."}});});
+    }).catch(err => { console.error('Error getting friendships:', err); res.status(500).send({data:{success: false, message: "Internal server error."}});});
+  }).catch(err => { console.error('Error getting user ID:', err); res.status(500).send({data:{success: false, message: "Internal server error."}});})
 });
 
 // User gets all events a friend has RSVP'd to

@@ -118,7 +118,8 @@ struct FriendListView: View {
     private func fetchFriends() {
         Task {
             do {
-                let friendNames = try await apiService.getAllFriends(username: fixedName)
+                let username = UserSession.shared.currentUsername ?? fixedName
+                let friendNames = try await apiService.getAllFriends(username: username)
                 await MainActor.run {
                     friends = friendNames.map { Friend(name: $0, profileImage: nil) }
                 }
