@@ -878,7 +878,11 @@ app.post('/getAllFriends', (req, res) => {
           return f.user_id_1;
         }
       });
-      Promise.all(friendList.map(id => getUsernamefromID(id)))
+      Promise.all(friendList.map(id => new Promise((resolve, reject) => {
+        getUsernamefromID(id)
+        .then( usernameObj => resolve(usernameObj))
+        .catch( _ => reject());
+      })))
       .then( friendUsernames => 
         res.status(200).send({data:{success: true, message: "Friends retrieved.", friends: friendUsernames}})
       ).catch(_ => res.status(500).send({data:{success: false, message: "Internal server error."}}));
