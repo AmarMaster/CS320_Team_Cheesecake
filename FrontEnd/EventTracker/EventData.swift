@@ -78,12 +78,17 @@ struct EventData: Identifiable, Codable {
         let formatter = ISO8601DateFormatter()
         time = formatter.date(from: timeString) ?? Date.now
         
-        duration = try container.decodeIfPresent(Duration.self, forKey: .duration) ?? Duration(hours: 2, minutes: 0)
+        // Handle duration as object from API
+        duration = try container.decodeIfPresent(Duration.self, forKey: .duration) ?? Duration(hours: 1, minutes: 0)
         
         details = try container.decode(String.self, forKey: .details)
         adultOnly = try container.decodeIfPresent(Bool.self, forKey: .adultOnly) ?? false
         cost = try container.decodeIfPresent(Double.self, forKey: .cost) ?? 0
-        owner_id = try container.decodeIfPresent(String.self, forKey: .owner_id)
+        if let ownerIdInt = try container.decodeIfPresent(Int.self, forKey: .owner_id) {
+            owner_id = String(ownerIdInt)
+        } else {
+            owner_id = try container.decodeIfPresent(String.self, forKey: .owner_id)
+        }
         imageData = try container.decodeIfPresent(Data.self, forKey: .imageData)
         coordinate = CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude)
     }

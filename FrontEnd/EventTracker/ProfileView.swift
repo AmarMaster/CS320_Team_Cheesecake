@@ -154,8 +154,9 @@ struct ProfileView: View {
                         }
                         .padding(.top, 20)
                         
-                        VStack(spacing: 5) {
-                            ForEach(Array(currentEvents.enumerated()), id: \.offset) { index, event in
+                        ScrollView {
+                            VStack(spacing: 5) {
+                                ForEach(Array(currentEvents.enumerated()), id: \.offset) { index, event in
                                 NavigationLink(destination: EventInfoView(event: event, fixedName: fixedName, fixedEmail: fixedEmail, events: .constant(currentEvents), eventIndex: index)) {
                                     HStack(alignment: .top, spacing: 12) {
                                         // event image
@@ -208,6 +209,7 @@ struct ProfileView: View {
                                 }
                             }
                         }
+                        }
                         
                         Spacer()
                         // add event button
@@ -239,7 +241,11 @@ struct ProfileView: View {
             LoginView(fixedName: "", fixedEmail: "")
         }
         .onAppear {
+            selectedEventType = 0
             Task { await loadHostedEvents() }
+        }
+        .refreshable {
+            await loadHostedEvents()
         }
     }
     
@@ -309,18 +315,20 @@ struct ProfileView: View {
     }
     
     private func loadHostedEvents() async {
-        // TODO: Implement API call for hosted events
-        hostedEvents = [EventData(
-            name: "My Hosted Event",
-            description: "Event I'm hosting",
-            coordinate: CLLocationCoordinate2D(latitude: 42.391155, longitude: -72.526711),
-            locationString: "UMass Amherst",
-            time: Date(),
-            durationHours: 2,
-            durationMinutes: 0,
-            details: "Hosted event details",
-            owner_id: userSession.currentUserId
-        )]
+        guard let userId = userSession.currentUserId else { 
+            print("No user ID found")
+            return 
+        }
+        print("Loading hosted events for user ID: \(userId)")
+        do {
+            hostedEvents = try await apiService.fetchHostedEvents(ownerID: userId)
+            print("Loaded \(hostedEvents.count) hosted events")
+            for event in hostedEvents {
+                print("Event: \(event.name) at \(event.time)")
+            }
+        } catch {
+            print("Failed to load hosted events: \(error)")
+        }
     }
     
     private func loadRSVPEvents() async {
