@@ -16,6 +16,9 @@ struct LoginView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var canContinue = false
+    @State private var isLoading = false
+    private let apiService = APIService()
+    @ObservedObject private var userSession = UserSession.shared
     
     var body: some View {
         NavigationStack {
@@ -51,38 +54,21 @@ struct LoginView: View {
                             .cornerRadius(16)
                     }.padding(.horizontal, 20)
                     
-                    // Continue button
-//                    NavigationLink(destination: ProfileView()) {
-//                        Text("Login")
-//                            .padding()
-//                            .frame(maxWidth: .infinity)
-//                            .background(Color(UIColorFromRGB(0xFF5934)))
-//                            .foregroundColor(.white)
-//                            .cornerRadius(16)
-//                    }.padding(.horizontal, 20)
-//                        .padding(.vertical, 29)
                     Button(action: {
-                        if nameOrEmail.isEmpty || password.isEmpty {
-                            showError = true
-                            errorMessage = "All fields are required."
-                        } else if (nameOrEmail != fixedName && nameOrEmail != fixedEmail) || password.isEmpty {
-                            showError = true
-                            errorMessage = "Invalid username/email or password."
-                        } else {
-                            showError = false
-                            canContinue = true
-                        }
+                        login()
                     }) {
-                        Text("Login")
+                        Text(isLoading ? "Logging in..." : "Login")
                             .padding()
                             .frame(maxWidth: .infinity)
-                            .background(Color(UIColorFromRGB(0xFF5934)))
+                            .background(isLoading ? Color.gray : Color(UIColorFromRGB(0xFF5934)))
                             .foregroundColor(.white)
                             .cornerRadius(16)
                         
-                    }.padding(.horizontal, 20)
-                        .padding(.top, 29)
-                        .padding(.bottom, 10)
+                    }
+                    .disabled(isLoading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 29)
+                    .padding(.bottom, 10)
                     
                     if showError {
                         Text(errorMessage)
@@ -107,6 +93,32 @@ struct LoginView: View {
             }
         }
 
+    }
+    
+    private func login() {
+        if nameOrEmail.isEmpty || password.isEmpty {
+            showError = true
+            errorMessage = "All fields are required."
+        } else {
+            showError = false
+            isLoading = true
+            
+            Task {
+                do {
+                    let response = try await apiService.login(username: nameOrEmail, password: password)
+                    await MainActor.run {      
+                        isLoading = false
+                        canContinue = true
+                    }
+                } catch {
+                    await MainActor.run {
+                        isLoading = false
+                        showError = true
+                        errorMessage = "Invalid username/email or password."
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -17,6 +17,7 @@ struct FriendProfileView: View {
     @State private var showFeedback = false
     @State private var feedbackMessage = ""
     @State private var isSuccess = false
+    private let apiService = APIService()
     
     var body: some View {
         NavigationStack {
@@ -84,8 +85,9 @@ struct FriendProfileView: View {
                     
                     ScrollView {
                         VStack(spacing: 10) {
-                            ForEach(events) { event in
-                                VStack(alignment: .leading, spacing: 10) {
+                            ForEach(Array(events.enumerated()), id: \.offset) { index, event in
+                                NavigationLink(destination: EventInfoView(event: event, fixedName: fixedName, fixedEmail: fixedEmail, events: .constant(events), eventIndex: index)) {
+                                    VStack(alignment: .leading, spacing: 10) {
                                     Text(event.name)
                                         .foregroundColor(.white)
                                         .bold()
@@ -111,12 +113,13 @@ struct FriendProfileView: View {
                                     }
                                     .foregroundColor(.white)
                                     .font(.subheadline)
+                                    }
+                                    .padding()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color(UIColorFromRGB(0x312F2F)))
+                                    .cornerRadius(16)
+                                    .padding(.horizontal, 20)
                                 }
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color(UIColorFromRGB(0x312F2F)))
-                                .cornerRadius(16)
-                                .padding(.horizontal, 20)
                             }
                         }
                     }
@@ -128,28 +131,7 @@ struct FriendProfileView: View {
             .navigationBarHidden(true)
         }
         .onAppear {
-            events = [
-                EventData(
-                    name: "Sample Event 1",
-                    description: "This is an event saved by \(friendUsername)",
-                    coordinate: CLLocationCoordinate2D(latitude: 42.3868, longitude: -72.5301),
-                    locationString: "Campus Center, Room 101",
-                    time: Date(),
-                    durationHours: 2,
-                    durationMinutes: 0,
-                    details: "Friend's saved event"
-                ),
-                EventData(
-                    name: "Sample Event 2",
-                    description: "Another event in \(friendUsername)'s list",
-                    coordinate: CLLocationCoordinate2D(latitude: 42.3900, longitude: -72.5280),
-                    locationString: "Student Union, Room 205",
-                    time: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date(),
-                    durationHours: 1,
-                    durationMinutes: 30,
-                    details: "Another saved event"
-                )
-            ]
+            getFriendEvents()
         }
     }
     
@@ -157,108 +139,55 @@ struct FriendProfileView: View {
         isLoading = true
         showFeedback = false
         
-        guard let url = URL(string: "http://localhost:3000/addFriend") else {
-            showError("Invalid server URL.")
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let requestBody = ["data": ["username": fixedName, "friendUsername": friendUsername]]
-        
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        } catch {
-            showError("Failed to encode request.")
-            return
-        }
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                handleResponse(data: data, error: error, successAction: {
+        Task {
+            do {
+                let message = try await apiService.addFriend(username: fixedName, friendUsername: friendUsername)
+                await MainActor.run {
+                    feedbackMessage = message
+                    isSuccess = true
                     isFriend = true
-                })
+                    isLoading = false
+                    showFeedback = true
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        showFeedback = false
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    showError("Failed to add friend.")
+                }
             }
-        }.resume()
+        }
     }
     
     private func removeFriend() {
         isLoading = true
         showFeedback = false
         
-        guard let url = URL(string: "http://localhost:3000/removeFriend") else {
-            showError("Invalid server URL.")
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let requestBody = ["data": ["username": fixedName, "friendUsername": friendUsername]]
-        
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        } catch {
-            showError("Failed to encode request.")
-            return
-        }
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                handleResponse(data: data, error: error, successAction: {
+        Task {
+            do {
+                let message = try await apiService.removeFriend(username: fixedName, friendUsername: friendUsername)
+                await MainActor.run {
+                    feedbackMessage = message
+                    isSuccess = true
                     isFriend = false
-                })
+                    isLoading = false
+                    showFeedback = true
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        showFeedback = false
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    showError("Failed to remove friend.")
+                }
             }
-        }.resume()
+        }
     }
     
-    private func handleResponse(data: Data?, error: Error?, successAction: @escaping () -> Void) {
-        isLoading = false
-        
-        if let error = error {
-            showError("Network error: \(error.localizedDescription)")
-            return
-        }
-        
-        guard let data = data else {
-            showError("No response from server.")
-            return
-        }
-        
-        // Debug: Print raw response
-        if let responseString = String(data: data, encoding: .utf8) {
-            print("Backend response: \(responseString)")
-        }
-        
-        do {
-            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let responseData = json["data"] as? [String: Any],
-               let success = responseData["success"] as? Bool,
-               let message = responseData["message"] as? String {
-                
-                feedbackMessage = message
-                isSuccess = success
-                
-                if success {
-                    successAction()
-                }
-            } else {
-                showError("Invalid response format.")
-                return
-            }
-        } catch {
-            showError("Failed to parse response.")
-            return
-        }
-        
-        showFeedback = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            showFeedback = false
-        }
-    }
+
     
     private func showError(_ message: String) {
         feedbackMessage = message
@@ -268,6 +197,19 @@ struct FriendProfileView: View {
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             showFeedback = false
+        }
+    }
+    
+    private func getFriendEvents() {
+        Task {
+            do {
+                let friendEvents = try await apiService.getFriendEvents(username: fixedName, friendUsername: friendUsername)
+                await MainActor.run {
+                    events = friendEvents
+                }
+            } catch {
+                
+            }
         }
     }
 }

@@ -12,6 +12,19 @@ describe("POST /getAllFriends (mocked DB)", () => {
     jest.clearAllMocks();
   });
 
+  test("Returns empty list of friends with success", async () => {
+    mockDb.one.mockResolvedValueOnce(1);
+    mockDb.manyOrNone.mockResolvedValueOnce([]);
+    
+    const res = await request(app)
+      .post("/getAllFriends")
+      .send({ data: { username: "user1" } });
+    console.log("Response body:", res.body);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.success).toBe(true);
+    expect(res.body.data.friends.length).toBe(0);
+  });
+
   test("Returns list of friends with success", async () => {
     mockDb.one.mockResolvedValueOnce(1);
     mockDb.manyOrNone.mockResolvedValueOnce([

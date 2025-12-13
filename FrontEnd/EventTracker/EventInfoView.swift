@@ -14,9 +14,12 @@ struct EventInfoView: View {
     let eventIndex: Int
     
     @State private var region: MKCoordinateRegion
-    
-    // user ID get from authentication
-    private let currentUserId = 1
+    @ObservedObject private var userSession = UserSession.shared
+    @State private var isRSVPed = false
+    @State private var isFavorited = false
+    @State private var isHosted = false
+    @State private var isLoading = false
+    private let apiService = APIService()
     
     
     init(event: EventData, fixedName: String, fixedEmail: String, events: Binding<[EventData]>, eventIndex: Int) {
@@ -193,23 +196,41 @@ struct EventInfoView: View {
                     
                     VStack(spacing: 15) {
                         
-                        // rsvp
-                        Button(action: {
+                        // Toggle buttons
+                        HStack(spacing: 10) {
+                            Button(action: {
+                                Task {
+                                    await toggleRSVP()
+                                }
+                            }) {
+                                Text(isRSVPed ? "Cancel RSVP" : "RSVP")
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(isRSVPed ? Color.gray : Color(UIColorFromRGB(0xFF5934)))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(16)
+                            }
+                            .disabled(isLoading)
                             
-                        }) {
-                            Text("RSVP")
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color(UIColorFromRGB(0xFF5934)))
-                                .foregroundColor(.white)
-                                .cornerRadius(16)
+                            Button(action: {
+                                Task {
+                                    await toggleFavorite()
+                                }
+                            }) {
+                                Image(systemName: isFavorited ? "heart.fill" : "heart")
+                                    .padding()
+                                    .background(Color(UIColorFromRGB(0xFF5934)))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(16)
+                            }
+                            .disabled(isLoading)
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 15)
                         
                         
-                        // edit - only show if user owns the event
-                        if event.owner_id == currentUserId {
+                        // edit and delete - only show if user owns the event
+                        if event.owner_id == userSession.currentUserId {
                             NavigationLink(destination: EditEventView(fixedName: fixedName, fixedEmail: fixedEmail, events: $events, eventIndex: eventIndex)) {
                                 Text("Edit Event")
                                     .padding()
@@ -217,6 +238,37 @@ struct EventInfoView: View {
                                     .background(Color(UIColorFromRGB(0xFF5934)))
                                     .foregroundColor(.white)
                                     .cornerRadius(16)
+                            }
+                            .padding(.horizontal, 20)
+                            
+                            HStack(spacing: 10) {
+                                Button(action: {
+                                    Task {
+                                        await toggleHosted()
+                                    }
+                                }) {
+                                    Text(isHosted ? "Unhost" : "Host")
+                                        .padding()
+                                        .frame(maxWidth: .infinity)
+                                        .background(isHosted ? Color.gray : Color(UIColorFromRGB(0xFF5934)))
+                                        .foregroundColor(.white)
+                                        .cornerRadius(16)
+                                }
+                                .disabled(isLoading)
+                                
+                                Button(action: {
+                                    Task {
+                                        await deleteEvent()
+                                    }
+                                }) {
+                                    Text("Delete Event")
+                                        .padding()
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color.red)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(16)
+                                }
+                                .disabled(isLoading)
                             }
                             .padding(.horizontal, 20)
                             .padding(.bottom, 29)
@@ -228,6 +280,77 @@ struct EventInfoView: View {
                 .navigationBarHidden(true)
             }
         }
+        .onAppear {
+            if let eventId = event.id {
+                Task {
+                    do {
+                        let eventDetails = try await apiService.fetchEventDetails(eventID: String(eventId))
+                        // Update event details if needed
+                    } catch {
+                        print("Failed to fetch event details: \(error)")
+                    }
+                }
+            }
+        }
+    }
+    
+    private func toggleRSVP() async {
+        guard let eventId = event.id else { return }
+        isLoading = true
+        
+        do {
+            _ = try await apiService.toggleRSVP(eventID: String(eventId))
+            isRSVPed.toggle()
+        } catch {
+            print("Error toggling RSVP: \(error)")
+        }
+        
+        isLoading = false
+    }
+    
+    private func toggleFavorite() async {
+        guard let eventId = event.id else { return }
+        isLoading = true
+        
+        do {
+            _ = try await apiService.toggleFavorite(eventID: String(eventId))
+            isFavorited.toggle()
+        } catch {
+            print("Error toggling favorite: \(error)")
+        }
+        
+        isLoading = false
+    }
+    
+    private func toggleHosted() async {
+        guard let eventId = event.id else { return }
+        isLoading = true
+        
+        do {
+            _ = try await apiService.toggleHosted(eventID: String(eventId))
+            isHosted.toggle()
+        } catch {
+            print("Error toggling hosted: \(error)")
+        }
+        
+        isLoading = false
+    }
+    
+    private func deleteEvent() async {
+        guard let eventId = event.id, let token = userSession.jwtToken else { return }
+        isLoading = true
+        
+        do {
+            _ = try await apiService.deleteEvent(eventID: String(eventId), token: token)
+            // Remove event from the events array
+            if eventIndex < events.count {
+                events.remove(at: eventIndex)
+            }
+        } catch {
+            print("Error deleting event: \(error)")
+        }
+        
+        isLoading = false
     }
 }
 

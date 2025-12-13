@@ -29,6 +29,8 @@ struct EditEventView: View {
     
     @Binding var events: [EventData]
     @Environment(\.dismiss) var dismiss
+    @StateObject private var apiViewModel = APIViewModel()
+    @ObservedObject private var userSession = UserSession.shared
     
     @State private var pickedCoordinate: CLLocationCoordinate2D?
     @State private var region: MKCoordinateRegion
@@ -51,7 +53,7 @@ struct EditEventView: View {
         self._details = State(initialValue: event.details)
         self._twentyoneplus = State(initialValue: event.adultOnly)
         self._cost = State(initialValue: event.cost)
-        self._pickedCoordinate = State(initialValue: event.coordinate)
+        self._pickedCoordinate = State(initialValue: CLLocationCoordinate2D(latitude: event.location.latitude, longitude: event.location.longitude))
         self._region = State(initialValue: MKCoordinateRegion(
             center: event.coordinate,
             span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
@@ -230,7 +232,7 @@ struct EditEventView: View {
                                             }
                                         }
                                         .pickerStyle(WheelPickerStyle())
-                                        .frame(width: 80)
+                                        .frame(width: 240)
                                         
                                         Picker("Minutes", selection: $durationMinutes) {
                                             ForEach([0, 15, 30, 45], id: \.self) { minute in
@@ -286,10 +288,14 @@ struct EditEventView: View {
                     }
                     VStack {
                         Button(action: {
-                            if (name.isEmpty || details.isEmpty || description.isEmpty || location.isEmpty || pickedCoordinate == nil) {
+                            guard let eventId = events[eventIndex].id, eventId > 0 else {
                                 showError = true
+                                return
                             }
-                            else if let coord = pickedCoordinate {
+                            
+                            if name.isEmpty || details.isEmpty || description.isEmpty || location.isEmpty || pickedCoordinate == nil {
+                                showError = true
+                            } else if let coord = pickedCoordinate {
                                 showError = false
                                 let imageData = eventImage?.jpegData(compressionQuality: 0.8)
                                 let updatedEvent = EventData(
@@ -307,10 +313,20 @@ struct EditEventView: View {
                                     owner_id: events[eventIndex].owner_id,
                                     imageData: imageData
                                 )
-                                if eventIndex < events.count {
-                                    events[eventIndex] = updatedEvent
+                                
+                                Task {
+                                    do {
+                                        let token = userSession.jwtToken ?? ""
+                                        let updated = try await APIService().updateEvent(updatedEvent, token: token)
+                                        if eventIndex < events.count {
+                                            events[eventIndex] = updated
+                                        }
+                                        dismiss()
+                                    } catch {
+                                        print("Error updating event: \(error)")
+                                        showError = true
+                                    }
                                 }
-                                dismiss()
                             }
                         }) {
                             Text("Update Event")
@@ -327,6 +343,12 @@ struct EditEventView: View {
                     }
                 }
                 .navigationBarHidden(true)
+            }
+        }
+        .onAppear {
+            // Ensure pickedCoordinate is set from the existing event
+            if pickedCoordinate == nil {
+                pickedCoordinate = CLLocationCoordinate2D(latitude: events[eventIndex].location.latitude, longitude: events[eventIndex].location.longitude)
             }
         }
     }

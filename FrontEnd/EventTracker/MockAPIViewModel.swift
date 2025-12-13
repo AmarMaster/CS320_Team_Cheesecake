@@ -30,7 +30,7 @@ coordinate: CLLocationCoordinate2D(latitude: 42.3868, longitude: -72.5301),
                 details: "College basketball rivalry game",
                 adultOnly: false,
                 cost: 15,
-                owner_id: 1
+                owner_id: "1"
             ),
             EventData(
                 id: 2,
@@ -44,7 +44,7 @@ coordinate: CLLocationCoordinate2D(latitude: 42.3732, longitude: -72.5199),
                 details: "Food trucks, live music, family fun",
                 adultOnly: false,
                 cost: 0,
-                owner_id: 2
+                owner_id: "2"
             ),
             EventData(
                 id: 3,
@@ -58,7 +58,7 @@ coordinate: CLLocationCoordinate2D(latitude: 42.3912, longitude: -72.5267),
                 details: "Networking with tech companies",
                 adultOnly: false,
                 cost: 0,
-                owner_id: 1
+                owner_id: "1"
             ),
             EventData(
                 id: 4,
@@ -72,7 +72,7 @@ coordinate: CLLocationCoordinate2D(latitude: 42.3251, longitude: -72.6412),
                 details: "21+ craft beer tasting tour",
                 adultOnly: true,
                 cost: 35,
-                owner_id: 3
+                owner_id: "3"
             ),
             EventData(
                 id: 5,
@@ -86,7 +86,7 @@ coordinate: CLLocationCoordinate2D(latitude: 42.3252, longitude: -72.5321),
                 details: "Student artwork exhibition",
                 adultOnly: false,
                 cost: 5,
-                owner_id: 2
+                owner_id: "2"
             ),
             EventData(
                 id: 6,
@@ -100,7 +100,7 @@ coordinate: CLLocationCoordinate2D(latitude: 42.3751, longitude: -72.5170),
                 details: "Weekly farmers market",
                 adultOnly: false,
                 cost: 0,
-                owner_id: 1
+                owner_id: "1"
             )
         ]
     }
