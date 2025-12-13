@@ -59,3 +59,13 @@ npm start
 ```
 The following message should be shown and the backend will run until it is exited.
 "EventMapper backend listening on port xxx"
+
+### 6. Open and Run the iOS App (Xcode)
+
+1. Open **Xcode**.
+2. Select **File → Open…**.
+3. Navigate to the project directory and open `EventTracker.xcodeproj`.
+4. Choose a simulator (e.g., *iPhone 15*).
+5. Click the **Run (▶︎)** button to build and launch the app.
+
+> Make sure the backend server is running before launching the app so the frontend can successfully connect to the API.
